@@ -78,6 +78,90 @@ jobs:
             src/HackathonVoting.sol:HackathonVoting \
             --etherscan-api-key $ETHERSCAN_API_KEY || echo "Verification failed or contract already verified"
 
+      - name: Register test projects and vote
+        id: test_projects
+        env:
+          HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+        run: |
+          echo "Registering 3 mock projects for testing..."
+
+          # Project 1: AI Chatbot
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "registerProject(string,string,string,string,string,string,string)" \
+            "AI-Powered Code Assistant" \
+            "An intelligent code completion tool using GPT-4 to help developers write better code faster" \
+            "CodeWizards" \
+            "AI" \
+            "https://placeholder.com/ai-assistant.png" \
+            "https://demo.codeassistant.dev" \
+            "https://github.com/codewizards/ai-assistant" \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json > /dev/null
+
+          sleep 5
+
+          # Project 2: Web3 DeFi
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "registerProject(string,string,string,string,string,string,string)" \
+            "DeFi Yield Optimizer" \
+            "Automatically find and optimize yield farming strategies across multiple DeFi protocols" \
+            "YieldHunters" \
+            "Web3" \
+            "https://placeholder.com/defi-optimizer.png" \
+            "https://demo.yieldhunters.fi" \
+            "https://github.com/yieldhunters/optimizer" \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json > /dev/null
+
+          sleep 5
+
+          # Project 3: IoT Smart Home
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "registerProject(string,string,string,string,string,string,string)" \
+            "Smart Home Energy Manager" \
+            "IoT-based system that optimizes energy consumption in real-time using ML predictions" \
+            "EcoTech" \
+            "IoT" \
+            "https://placeholder.com/smart-home.png" \
+            "https://demo.ecotechhome.io" \
+            "https://github.com/ecotech/energy-manager" \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json > /dev/null
+
+          sleep 5
+
+          # Verify project count
+          PROJECT_COUNT=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+            "projectCount()(uint256)" \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Total projects registered: $PROJECT_COUNT"
+
+          # Cast a test vote for project 1
+          VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
+            "vote(uint256)" \
+            1 \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json)
+
+          VOTE_TX_HASH=$(echo $VOTE_TX | jq -r '.transactionHash')
+          echo "vote_tx_hash=$VOTE_TX_HASH" >> $GITHUB_OUTPUT
+          echo "Test vote cast: $VOTE_TX_HASH"
+
+          sleep 5
+
+          # Get total votes to verify
+          TOTAL_VOTES=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+            "getTotalVotes()(uint256)" \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Total votes: $TOTAL_VOTES"
+
       - name: Create deployment summary
         run: |
           echo "## 🚀 Holesky Testnet Deployment" >> $GITHUB_STEP_SUMMARY
@@ -91,11 +175,15 @@ jobs:
           echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| HackathonVoting | \`${{ steps.deploy.outputs.contract_address }}\` | [View on Etherscan](https://holesky.etherscan.io/address/${{ steps.deploy.outputs.contract_address }}) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Projects Registered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. Register projects using \`registerProject()\`" >> $GITHUB_STEP_SUMMARY
-          echo "2. Test voting functionality with \`vote()\`" >> $GITHUB_STEP_SUMMARY
-          echo "3. Resolve voting with \`resolveVoting()\`" >> $GITHUB_STEP_SUMMARY
+          echo "1. **AI-Powered Code Assistant** (AI) - by CodeWizards" >> $GITHUB_STEP_SUMMARY
+          echo "2. **DeFi Yield Optimizer** (Web3) - by YieldHunters" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Smart Home Energy Manager** (IoT) - by EcoTech" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Vote" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Vote Transaction: [\`${{ steps.test_projects.outputs.vote_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.test_projects.outputs.vote_tx_hash }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
 
