@@ -6,7 +6,9 @@ import "../src/HackathonVoting.sol";
 
 contract SetupProjectsScript is Script {
     function run() external {
-        string memory json = vm.readFile(string.concat(vm.projectRoot(), "/projects.json"));
+        // Use gnosis-projects.json for Gnosis Chain (chain ID 100), otherwise use projects.json
+        string memory projectFile = block.chainid == 100 ? "/gnosis-projects.json" : "/projects.json";
+        string memory json = vm.readFile(string.concat(vm.projectRoot(), projectFile));
         bytes memory projectsRaw = vm.parseJson(json, ".projects");
         Project[] memory projectsList = abi.decode(projectsRaw, (Project[]));
 

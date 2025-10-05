@@ -71,6 +71,20 @@ jobs:
           echo "Waiting 60 seconds for blockchain indexing..."
           sleep 60
 
+      - name: Register projects from gnosis-projects.json
+        env:
+          PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          VOTING_CONTRACT_ADDRESS: ${{ steps.deploy.outputs.contract_address }}
+        run: |
+          echo "Registering projects from gnosis-projects.json..."
+
+          forge script script/SetupProjects.s.sol:SetupProjectsScript \
+            --rpc-url $GNOSIS_RPC_URL \
+            --broadcast \
+            --slow \
+            -vvvv
+
       - name: Verify contract on Blockscout
         env:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
@@ -102,7 +116,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Contract | Address | Explorer |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
-          echo "| HackathonVoting | \`${{ steps.deploy.outputs.contract_address }}\` | [View on GnosisScan](https://gnosisscan.io/address/${{ steps.deploy.outputs.contract_address }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| HackathonVoting | \`${{ steps.deploy.outputs.contract_address }}\` | [View on Blockscout](https://gnosis.blockscout.com/address/${{ steps.deploy.outputs.contract_address }}) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Contract Interface" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -131,7 +145,7 @@ jobs:
             "contracts": {
               "HackathonVoting": {
                 "address": "${{ steps.deploy.outputs.contract_address }}",
-                "explorer": "https://gnosisscan.io/address/${{ steps.deploy.outputs.contract_address }}",
+                "explorer": "https://gnosis.blockscout.com/address/${{ steps.deploy.outputs.contract_address }}",
                 "verified": true
               }
             }
@@ -157,7 +171,7 @@ jobs:
           - **Network:** Gnosis Chain (Mainnet)
           - **Chain ID:** 100
           - **Contract Address:** `${{ steps.deploy.outputs.contract_address }}`
-          - **Explorer:** [View on GnosisScan](https://gnosisscan.io/address/${{ steps.deploy.outputs.contract_address }})
+          - **Explorer:** [View on Blockscout](https://gnosis.blockscout.com/address/${{ steps.deploy.outputs.contract_address }})
           - **Deployment Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           - **Git Commit:** ${{ github.sha }}
 
@@ -228,7 +242,7 @@ jobs:
 
           - **Ownable:** Admin functions protected by OpenZeppelin's Ownable
           - **Custom Errors:** Gas-efficient error handling
-          - **Verified Contract:** Source code verified on GnosisScan
+          - **Verified Contract:** Source code verified on Blockscout
           EOF
 
           cat deployment-notes.md
@@ -254,7 +268,7 @@ jobs:
         with:
           script: |
             const contractAddress = '${{ steps.deploy.outputs.contract_address }}';
-            const explorerUrl = `https://gnosisscan.io/address/${contractAddress}`;
+            const explorerUrl = `https://gnosis.blockscout.com/address/${contractAddress}`;
 
             const comment = `## 🚀 Gnosis Chain Mainnet Deployment
 
@@ -265,7 +279,7 @@ jobs:
 
             | Contract | Address | Explorer |
             | --- | --- | --- |
-            | HackathonVoting | \`${contractAddress}\` | [View on GnosisScan](${explorerUrl}) |
+            | HackathonVoting | \`${contractAddress}\` | [View on Blockscout](${explorerUrl}) |
 
             ### Quick Start
 
