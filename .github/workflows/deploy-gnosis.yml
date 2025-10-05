@@ -48,7 +48,7 @@ jobs:
         id: deploy
         env:
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
-          GNOSIS_RPC_URL: https://rpc.gnosischain.com
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
         run: |
           echo "Deploying HackathonVoting to Gnosis Chain..."
 
@@ -68,7 +68,7 @@ jobs:
 
       - name: Verify contract on GnosisScan
         env:
-          GNOSIS_RPC_URL: https://rpc.gnosischain.com
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
           GNOSISSCAN_API_KEY: ${{ secrets.GNOSISSCAN_API_KEY }}
         run: |
           echo "Verifying HackathonVoting contract on GnosisScan..."
@@ -84,7 +84,7 @@ jobs:
       - name: Test vote transaction
         id: test_vote
         env:
-          GNOSIS_RPC_URL: https://rpc.gnosischain.com
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
         run: |
           echo "Registering a test project and casting a vote..."

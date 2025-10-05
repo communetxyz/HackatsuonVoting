@@ -42,7 +42,7 @@ jobs:
         id: deploy
         env:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
-          HOLESKY_RPC_URL: https://1rpc.io/holesky
+          HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
         run: |
           echo "Deploying HackathonVoting to Holesky testnet..."
 
