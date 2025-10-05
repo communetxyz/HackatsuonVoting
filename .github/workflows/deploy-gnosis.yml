@@ -66,6 +66,11 @@ jobs:
           echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
           echo "Deployed to: $CONTRACT_ADDRESS"
 
+      - name: Wait for blockchain indexing
+        run: |
+          echo "Waiting 60 seconds for blockchain indexing..."
+          sleep 60
+
       - name: Verify contract on GnosisScan
         env:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
@@ -73,14 +78,21 @@ jobs:
         run: |
           echo "Verifying HackathonVoting contract on GnosisScan..."
 
+          # Get the exact compiler version metadata from the compiled artifact
+          COMPILER_VERSION=$(cat out/HackathonVoting.sol/HackathonVoting.json | jq -r '.metadata.compiler.version')
+          echo "Exact compiler version from artifact: $COMPILER_VERSION"
+
           forge verify-contract \
-            --chain-id 100 \
-            --verifier-url https://api.gnosisscan.io/v2/api?chainid=100 \
-            --compiler-version v0.8.20 \
-            --watch \
             ${{ steps.deploy.outputs.contract_address }} \
             src/HackathonVoting.sol:HackathonVoting \
-            --etherscan-api-key $GNOSISSCAN_API_KEY
+            --chain-id 100 \
+            --etherscan-api-key $GNOSISSCAN_API_KEY \
+            --compiler-version "v${COMPILER_VERSION}" \
+            --verifier-url https://api.gnosisscan.io/api \
+            --watch || {
+              echo "::error::Contract verification failed"
+              exit 1
+            }
 
 
       - name: Create deployment summary
