@@ -75,12 +75,12 @@ jobs:
 
           forge verify-contract \
             --chain-id 100 \
-            --verifier-url https://api.gnosisscan.io/api \
+            --verifier-url https://api.gnosisscan.io/v2/api?chainid=100 \
             --compiler-version v0.8.20 \
             --watch \
             ${{ steps.deploy.outputs.contract_address }} \
             src/HackathonVoting.sol:HackathonVoting \
-            --etherscan-api-key $GNOSISSCAN_API_KEY || echo "Verification failed or contract already verified"
+            --etherscan-api-key $GNOSISSCAN_API_KEY
 
 
       - name: Create deployment summary
