@@ -57,8 +57,8 @@ jobs:
 
           echo "$DEPLOY_OUTPUT"
 
-          # Extract contract address from deployment output
-          CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "HackathonVoting deployed to:" | awk '{print $NF}')
+          # Extract contract address from deployment output (from Logs section, not traces)
+          CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "^  HackathonVoting deployed to:" | awk '{print $NF}')
 
           echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
           echo "Deployed to: $CONTRACT_ADDRESS"
