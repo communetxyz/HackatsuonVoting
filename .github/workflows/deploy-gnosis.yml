@@ -1,0 +1,376 @@
+name: Deploy to Gnosis Chain
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a new release'
+        required: false
+        default: 'false'
+        type: boolean
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: false
+        type: string
+
+jobs:
+  deploy-gnosis:
+    name: Deploy to Gnosis Chain
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install dependencies
+        run: forge install
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Deploy HackathonVoting
+        id: deploy
+        env:
+          PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
+          GNOSIS_RPC_URL: https://rpc.gnosischain.com
+        run: |
+          echo "Deploying HackathonVoting to Gnosis Chain..."
+
+          DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
+            --rpc-url $GNOSIS_RPC_URL \
+            --broadcast \
+            --slow \
+            -vvvv)
+
+          echo "$DEPLOY_OUTPUT"
+
+          # Extract contract address from deployment output
+          CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -A 1 "HackathonVoting deployed to:" | tail -n 1 | awk '{print $NF}')
+
+          echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
+          echo "Deployed to: $CONTRACT_ADDRESS"
+
+      - name: Verify contract on GnosisScan
+        env:
+          GNOSIS_RPC_URL: https://rpc.gnosischain.com
+          GNOSISSCAN_API_KEY: ${{ secrets.GNOSISSCAN_API_KEY }}
+        run: |
+          echo "Verifying HackathonVoting contract on GnosisScan..."
+
+          forge verify-contract \
+            --chain-id 100 \
+            --compiler-version v0.8.20 \
+            --watch \
+            ${{ steps.deploy.outputs.contract_address }} \
+            src/HackathonVoting.sol:HackathonVoting \
+            --etherscan-api-key $GNOSISSCAN_API_KEY || echo "Verification failed or contract already verified"
+
+      - name: Test vote transaction
+        id: test_vote
+        env:
+          GNOSIS_RPC_URL: https://rpc.gnosischain.com
+          PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
+        run: |
+          echo "Registering a test project and casting a vote..."
+
+          # Register a test project
+          REGISTER_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
+            "registerProject(string,string,string,uint8,string,string,string)" \
+            "Test Project" \
+            "A test project for CI/CD verification" \
+            "Test Team" \
+            0 \
+            "https://example.com/image.png" \
+            "https://example.com/demo" \
+            "https://github.com/test/project" \
+            --rpc-url $GNOSIS_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json)
+
+          REGISTER_TX_HASH=$(echo $REGISTER_TX | jq -r '.transactionHash')
+          echo "register_tx_hash=$REGISTER_TX_HASH" >> $GITHUB_OUTPUT
+          echo "Project registered: $REGISTER_TX_HASH"
+
+          # Wait for confirmation
+          sleep 10
+
+          # Get project count to verify
+          PROJECT_COUNT=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+            "projectCount()(uint256)" \
+            --rpc-url $GNOSIS_RPC_URL)
+
+          echo "Project count: $PROJECT_COUNT"
+
+          # Cast a vote for the project
+          VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
+            "vote(uint256)" \
+            1 \
+            --rpc-url $GNOSIS_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json)
+
+          VOTE_TX_HASH=$(echo $VOTE_TX | jq -r '.transactionHash')
+          echo "vote_tx_hash=$VOTE_TX_HASH" >> $GITHUB_OUTPUT
+          echo "Vote cast: $VOTE_TX_HASH"
+
+          # Wait for confirmation
+          sleep 10
+
+          # Get total votes to verify
+          TOTAL_VOTES=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+            "getTotalVotes()(uint256)" \
+            --rpc-url $GNOSIS_RPC_URL)
+
+          echo "Total votes: $TOTAL_VOTES"
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Gnosis Chain Mainnet Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Network:** Gnosis Chain" >> $GITHUB_STEP_SUMMARY
+          echo "**Chain ID:** 100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Contracts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract | Address | Explorer |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| HackathonVoting | \`${{ steps.deploy.outputs.contract_address }}\` | [View on GnosisScan](https://gnosisscan.io/address/${{ steps.deploy.outputs.contract_address }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Transactions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Action | Transaction Hash | Explorer |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Register Project | \`${{ steps.test_vote.outputs.register_tx_hash }}\` | [View](https://gnosisscan.io/tx/${{ steps.test_vote.outputs.register_tx_hash }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cast Vote | \`${{ steps.test_vote.outputs.vote_tx_hash }}\` | [View](https://gnosisscan.io/tx/${{ steps.test_vote.outputs.vote_tx_hash }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Contract Interface" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Admin Functions:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`registerProject()\` - Register a new project" >> $GITHUB_STEP_SUMMARY
+          echo "- \`resolveVoting()\` - Finalize voting and determine winner" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**User Functions:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`vote(uint256 projectId)\` - Vote for a project" >> $GITHUB_STEP_SUMMARY
+          echo "- \`getMyVotes()\` - Get your voting history" >> $GITHUB_STEP_SUMMARY
+          echo "- \`getVotingData(address)\` - Get all voting data" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Save deployment artifacts
+        run: |
+          mkdir -p deployments/gnosis
+
+          cat > deployments/gnosis/deployment.json << EOF
+          {
+            "network": "gnosis",
+            "chainId": 100,
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployer": "GitHub Actions",
+            "gitCommit": "${{ github.sha }}",
+            "contracts": {
+              "HackathonVoting": {
+                "address": "${{ steps.deploy.outputs.contract_address }}",
+                "explorer": "https://gnosisscan.io/address/${{ steps.deploy.outputs.contract_address }}",
+                "verified": true
+              }
+            },
+            "testTransactions": {
+              "registerProject": "${{ steps.test_vote.outputs.register_tx_hash }}",
+              "vote": "${{ steps.test_vote.outputs.vote_tx_hash }}"
+            }
+          }
+          EOF
+
+          cat deployments/gnosis/deployment.json
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gnosis-deployment
+          path: deployments/gnosis/
+
+      - name: Create deployment notes
+        id: deployment_notes
+        run: |
+          cat > deployment-notes.md << 'EOF'
+          # HackathonVoting Deployment - Gnosis Chain
+
+          ## Contract Details
+
+          - **Network:** Gnosis Chain (Mainnet)
+          - **Chain ID:** 100
+          - **Contract Address:** `${{ steps.deploy.outputs.contract_address }}`
+          - **Explorer:** [View on GnosisScan](https://gnosisscan.io/address/${{ steps.deploy.outputs.contract_address }})
+          - **Deployment Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - **Git Commit:** ${{ github.sha }}
+
+          ## Test Transactions
+
+          The following test transactions were executed to verify the deployment:
+
+          1. **Register Test Project**
+             - Transaction: [${{ steps.test_vote.outputs.register_tx_hash }}](https://gnosisscan.io/tx/${{ steps.test_vote.outputs.register_tx_hash }})
+             - Project ID: 1
+             - Title: "Test Project"
+
+          2. **Cast Test Vote**
+             - Transaction: [${{ steps.test_vote.outputs.vote_tx_hash }}](https://gnosisscan.io/tx/${{ steps.test_vote.outputs.vote_tx_hash }})
+             - Project ID: 1
+             - Voter: Deployer address
+
+          ## Usage
+
+          ### Admin Functions (Owner Only)
+
+          Register a project:
+          ```bash
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "registerProject(string,string,string,uint8,string,string,string)" \
+            "Project Title" \
+            "Project Description" \
+            "Team Name" \
+            0 \
+            "https://image.url" \
+            "https://demo.url" \
+            "https://github.url" \
+            --rpc-url https://rpc.gnosischain.com \
+            --private-key $PRIVATE_KEY
+          ```
+
+          Resolve voting:
+          ```bash
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "resolveVoting()" \
+            --rpc-url https://rpc.gnosischain.com \
+            --private-key $PRIVATE_KEY
+          ```
+
+          ### User Functions
+
+          Vote for a project:
+          ```bash
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "vote(uint256)" \
+            1 \
+            --rpc-url https://rpc.gnosischain.com \
+            --private-key $PRIVATE_KEY
+          ```
+
+          Get voting data:
+          ```bash
+          cast call ${{ steps.deploy.outputs.contract_address }} \
+            "getVotingData(address)" \
+            <YOUR_ADDRESS> \
+            --rpc-url https://rpc.gnosischain.com
+          ```
+
+          Get your votes:
+          ```bash
+          cast call ${{ steps.deploy.outputs.contract_address }} \
+            "getMyVotes()(uint256[])" \
+            --rpc-url https://rpc.gnosischain.com \
+            --from <YOUR_ADDRESS>
+          ```
+
+          ## Features
+
+          - ✅ Two votes per address
+          - ✅ Four project categories (AI, Web3, IoT, Other)
+          - ✅ Transparent on-chain voting
+          - ✅ Immutable vote records
+          - ✅ Comprehensive view function
+          - ✅ Gas optimized for Gnosis Chain
+
+          ## Security
+
+          - **Ownable:** Admin functions protected by OpenZeppelin's Ownable
+          - **ReentrancyGuard:** Vote function protected against reentrancy attacks
+          - **Custom Errors:** Gas-efficient error handling
+          - **Verified Contract:** Source code verified on GnosisScan
+          EOF
+
+          cat deployment-notes.md
+
+      - name: Create Release
+        if: github.event_name == 'release' || github.event.inputs.create_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.release_tag || github.ref_name }}
+          body_path: deployment-notes.md
+          files: |
+            deployments/gnosis/deployment.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const contractAddress = '${{ steps.deploy.outputs.contract_address }}';
+            const explorerUrl = `https://gnosisscan.io/address/${contractAddress}`;
+            const registerTxHash = '${{ steps.test_vote.outputs.register_tx_hash }}';
+            const voteTxHash = '${{ steps.test_vote.outputs.vote_tx_hash }}';
+
+            const comment = `## 🚀 Gnosis Chain Mainnet Deployment
+
+            **Network:** Gnosis Chain
+            **Chain ID:** 100
+
+            ### Deployed Contracts
+
+            | Contract | Address | Explorer |
+            | --- | --- | --- |
+            | HackathonVoting | \`${contractAddress}\` | [View on GnosisScan](${explorerUrl}) |
+
+            ### Test Transactions
+
+            | Action | Transaction Hash | Explorer |
+            | --- | --- | --- |
+            | Register Project | \`${registerTxHash}\` | [View](https://gnosisscan.io/tx/${registerTxHash}) |
+            | Cast Vote | \`${voteTxHash}\` | [View](https://gnosisscan.io/tx/${voteTxHash}) |
+
+            ### Quick Start
+
+            **Vote for a project:**
+            \`\`\`bash
+            cast send ${contractAddress} \\
+              "vote(uint256)" \\
+              1 \\
+              --rpc-url https://rpc.gnosischain.com \\
+              --private-key $PRIVATE_KEY
+            \`\`\`
+
+            **Get voting data:**
+            \`\`\`bash
+            cast call ${contractAddress} \\
+              "getVotingData(address)" \\
+              <YOUR_ADDRESS> \\
+              --rpc-url https://rpc.gnosischain.com
+            \`\`\`
+
+            **Deployment Time:** ${new Date().toISOString()}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

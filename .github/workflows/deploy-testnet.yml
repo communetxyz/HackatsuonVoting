@@ -1,0 +1,183 @@
+name: Deploy to Holesky Testnet
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      verify:
+        description: 'Verify contract on block explorer'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  deploy-testnet:
+    name: Deploy to Holesky
+    runs-on: ubuntu-latest
+    environment: testnet
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install dependencies
+        run: forge install
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Deploy HackathonVoting
+        id: deploy
+        env:
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          HOLESKY_RPC_URL: https://ethereum-holesky-rpc.publicnode.com
+        run: |
+          echo "Deploying HackathonVoting to Holesky testnet..."
+
+          DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
+            --rpc-url $HOLESKY_RPC_URL \
+            --broadcast \
+            --slow \
+            -vvvv)
+
+          echo "$DEPLOY_OUTPUT"
+
+          # Extract contract address from deployment output
+          CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -A 1 "HackathonVoting deployed to:" | tail -n 1 | awk '{print $NF}')
+
+          echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
+          echo "Deployed to: $CONTRACT_ADDRESS"
+
+      - name: Verify contract
+        if: ${{ github.event.inputs.verify != 'false' }}
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+        run: |
+          echo "Verifying HackathonVoting contract on Etherscan..."
+
+          forge verify-contract \
+            --chain-id 17000 \
+            --compiler-version v0.8.20 \
+            --watch \
+            ${{ steps.deploy.outputs.contract_address }} \
+            src/HackathonVoting.sol:HackathonVoting \
+            --etherscan-api-key $ETHERSCAN_API_KEY || echo "Verification failed or contract already verified"
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Holesky Testnet Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Network:** Holesky (Ethereum Testnet)" >> $GITHUB_STEP_SUMMARY
+          echo "**Chain ID:** 17000" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Contracts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract | Address | Explorer |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| HackathonVoting | \`${{ steps.deploy.outputs.contract_address }}\` | [View on Etherscan](https://holesky.etherscan.io/address/${{ steps.deploy.outputs.contract_address }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Register projects using \`registerProject()\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test voting functionality with \`vote()\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Resolve voting with \`resolveVoting()\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Save deployment artifacts
+        run: |
+          mkdir -p deployments/holesky
+
+          cat > deployments/holesky/deployment.json << EOF
+          {
+            "network": "holesky",
+            "chainId": 17000,
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployer": "GitHub Actions",
+            "contracts": {
+              "HackathonVoting": {
+                "address": "${{ steps.deploy.outputs.contract_address }}",
+                "explorer": "https://holesky.etherscan.io/address/${{ steps.deploy.outputs.contract_address }}"
+              }
+            }
+          }
+          EOF
+
+          cat deployments/holesky/deployment.json
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: holesky-deployment
+          path: deployments/holesky/
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const contractAddress = '${{ steps.deploy.outputs.contract_address }}';
+            const explorerUrl = `https://holesky.etherscan.io/address/${contractAddress}`;
+
+            const comment = `## 🚀 Holesky Testnet Deployment
+
+            **Network:** Holesky (Ethereum Testnet)
+            **Chain ID:** 17000
+
+            ### Deployed Contracts
+
+            | Contract | Address | Explorer |
+            | --- | --- | --- |
+            | HackathonVoting | \`${contractAddress}\` | [View on Etherscan](${explorerUrl}) |
+
+            ### Interact with Contract
+
+            \`\`\`bash
+            # Register a project (owner only)
+            cast send ${contractAddress} \\
+              "registerProject(string,string,string,uint8,string,string,string)" \\
+              "Test Project" \\
+              "A test project" \\
+              "Test Team" \\
+              0 \\
+              "https://image.url" \\
+              "https://demo.url" \\
+              "https://github.url" \\
+              --rpc-url https://ethereum-holesky-rpc.publicnode.com \\
+              --private-key $PRIVATE_KEY
+
+            # Vote for a project
+            cast send ${contractAddress} \\
+              "vote(uint256)" \\
+              1 \\
+              --rpc-url https://ethereum-holesky-rpc.publicnode.com \\
+              --private-key $PRIVATE_KEY
+
+            # Get voting data
+            cast call ${contractAddress} \\
+              "getVotingData(address)" \\
+              <YOUR_ADDRESS> \\
+              --rpc-url https://ethereum-holesky-rpc.publicnode.com
+            \`\`\`
+
+            **Deployment Time:** ${new Date().toISOString()}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
