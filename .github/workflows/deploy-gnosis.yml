@@ -88,7 +88,6 @@ jobs:
             --chain-id 100 \
             --etherscan-api-key $GNOSISSCAN_API_KEY \
             --compiler-version "v${COMPILER_VERSION}" \
-            --verifier-url https://api.gnosisscan.io/api \
             --watch || {
               echo "::error::Contract verification failed"
               exit 1
