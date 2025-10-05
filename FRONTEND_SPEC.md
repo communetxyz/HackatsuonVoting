@@ -107,33 +107,17 @@ Hackathon participants and judges need a transparent, user-friendly interface to
 
 **Post-condition:** User has voted, UI reflects updated state, transaction recorded on-chain
 
-#### Flow 2: Voter Views Results
-
-**Pre-condition:** Voting has been resolved by admin
-
-1. **User** visits voting platform
-2. **System** fetches `getVotingData(userAddress)`
-3. **System** detects `votingResolved = true`
-4. **System** displays:
-   - Winner banner with winning project details
-   - Winner project ID from `winnerProjectId`
-   - All projects ranked by vote count
-   - Final vote statistics
-5. **User** views complete results
-
-**Post-condition:** User sees final voting results
-
 ### 4.2 Alternate / Error Paths
 
 | # | Condition | System Action | Suggested Handling |
 |---|-----------|---------------|-------------------|
-| A1 | Wallet not installed | Detect no Web3 provider | Show install prompt with MetaMask/other wallet links |
+| A1 | Wallet not installed | Detect no Web3 provider | Show WalletConnect QR code/deep links for mobile wallets |
 | A2 | Wallet connection rejected | User denies connection | Show "Connection required to vote" message with retry button |
 | A3 | Wrong network | Connected to non-Gnosis/Holesky | Show network switch prompt with instructions |
 | A4 | Transaction rejected | User denies signature | Show "Transaction cancelled" notification, keep UI state |
 | A5 | Already voted for project | `AlreadyVotedForProject` error | Show "You already voted for this project" message |
 | A6 | Max votes reached | `MaxVotesReached` error | Show "You've used both votes" message, hide vote buttons |
-| A7 | Voting already resolved | `VotingAlreadyResolved` error | Redirect to results page, show results UI |
+| A7 | Voting already resolved | `VotingAlreadyResolved` error | Show "Voting has ended" message with winner information |
 | A8 | Project not found | `ProjectNotFound` error | Show 404 project page, link to home |
 | A9 | Transaction failed | RPC error, network timeout | Show error message with transaction hash, retry button |
 | A10 | No projects registered | `projectCount = 0` | Show "No projects yet" empty state |
@@ -150,7 +134,7 @@ Hackathon participants and judges need a transparent, user-friendly interface to
    - Logo/Brand
    - Wallet connection button
    - Network indicator (Gnosis/Holesky)
-   - Navigation (Home, Projects, Results)
+   - Navigation (Home, Projects)
    - User info (address, votes remaining)
 
 2. **Footer**
@@ -189,99 +173,55 @@ Hackathon participants and judges need a transparent, user-friendly interface to
    - Vote button
    - Social share buttons
 
-7. **Results Page**
-   - Winner announcement banner
-   - Podium/ranking visualization
-   - Full project ranking list
-   - Final statistics
-   - Category breakdown (if implemented)
-
 #### Utility Components
 
-8. **Wallet Connection Modal**
-   - Wallet options (MetaMask, WalletConnect, etc.)
+7. **Wallet Connection Modal**
+   - WalletConnect integration (preferred wallet solution)
    - Connection status
    - Error messages
    - Tutorial/help link
 
-9. **Transaction Status Modal**
+8. **Transaction Status Modal**
    - Loading spinner
    - Transaction hash link to explorer
    - Success/error state
    - Action buttons (Close, View on Explorer)
 
-10. **Error Boundary**
-    - Catch application errors
-    - Show user-friendly error page
-    - Reload/retry options
+9. **Error Boundary**
+   - Catch application errors
+   - Show user-friendly error page
+   - Reload/retry options
 
-11. **Toast/Notification System**
+10. **Toast/Notification System**
     - Success messages
     - Error messages
     - Info messages
     - Transaction updates
 
-12. **Loading States**
+11. **Loading States**
     - Skeleton loaders for project cards
     - Spinner for transactions
     - Progress indicators
 
-13. **Empty States**
+12. **Empty States**
     - No projects registered
     - No votes cast
     - Search no results
 
-### 5.2 User Flow Diagrams
-
-```mermaid
-stateDiagram-v2
-    [*] --> Disconnected
-    Disconnected --> Connecting: Click Connect
-    Connecting --> Connected: Approval Success
-    Connecting --> Disconnected: Rejection/Error
-    Connected --> Voting: Has Votes
-    Connected --> Voted: Max Votes Used
-    Voting --> Voting: Cast Vote (1st)
-    Voting --> Voted: Cast Vote (2nd)
-    Voted --> Results: Admin Resolves
-    Connected --> Results: Already Resolved
-```
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant Wallet
-    participant Contract
-
-    User->>Frontend: Click Vote Button
-    Frontend->>Frontend: Validate (not voted, has votes)
-    Frontend->>Wallet: Request vote(projectId) tx
-    Wallet->>User: Prompt signature
-    User->>Wallet: Approve
-    Wallet->>Contract: Submit transaction
-    Contract-->>Wallet: Transaction hash
-    Wallet-->>Frontend: Transaction hash
-    Frontend->>Frontend: Show loading state
-    Frontend->>Contract: Wait for confirmation
-    Contract-->>Frontend: Confirmed
-    Frontend->>Contract: getVotingData(address)
-    Contract-->>Frontend: Updated data
-    Frontend->>User: Show success + updated UI
-```
+### 5.2 User Flow Diagram
 
 ```mermaid
 flowchart TD
     A[User Visits Site] --> B{Wallet Connected?}
     B -->|No| C[Show Connect Wallet Button]
     C --> D{User Clicks Connect}
-    D --> E[Request Wallet Connection]
+    D --> E[Request WalletConnect]
     E --> F{Approved?}
     F -->|Yes| G[Fetch Voting Data]
     F -->|No| H[Show Error Message]
     B -->|Yes| G
     G --> I{Voting Resolved?}
-    I -->|Yes| J[Show Results Page]
+    I -->|Yes| J[Show Winner Banner & Final Results]
     I -->|No| K[Show Projects & Voting UI]
     K --> L{Has Votes Remaining?}
     L -->|Yes| M[Enable Vote Buttons]

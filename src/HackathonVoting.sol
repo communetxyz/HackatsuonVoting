@@ -190,10 +190,10 @@ contract HackathonVoting is IHackathonVoting, Ownable {
      */
     function getVotingData(address viewer) external view override returns (VotingData memory) {
         // Build projects array
-        ProjectInfo[] memory projectInfos = new ProjectInfo[](projectCount);
+        Project[] memory projectInfos = new Project[](projectCount);
         for (uint256 i = 1; i <= projectCount; i++) {
             Project storage p = projects[i];
-            projectInfos[i - 1] = ProjectInfo({
+            projectInfos[i - 1] = Project({
                 id: p.id,
                 title: p.title,
                 description: p.description,

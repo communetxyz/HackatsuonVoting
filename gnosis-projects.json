@@ -1,22 +1,31 @@
 {
   "projects": [
     {
-      "title": "Example Project 1",
-      "description": "Project description here",
-      "teamName": "Team Name",
+      "title": "AI-Powered Code Assistant",
+      "description": "An intelligent code completion tool using GPT-4 to help developers write better code faster. Features include context-aware suggestions, automated documentation generation, and bug detection.",
+      "teamName": "CodeWizards",
       "category": "AI",
-      "imageUrl": "https://example.com/image1.png",
-      "demoUrl": "https://demo.example.com/project1",
-      "githubUrl": "https://github.com/team/project1"
+      "imageUrl": "https://placeholder.com/ai-assistant.png",
+      "demoUrl": "https://demo.codeassistant.dev",
+      "githubUrl": "https://github.com/codewizards/ai-assistant"
     },
     {
-      "title": "Example Project 2",
-      "description": "Project description here",
-      "teamName": "Team Name",
+      "title": "DeFi Lending Protocol",
+      "description": "A decentralized lending platform built on Gnosis Chain with low fees and high capital efficiency. Supports multiple collateral types and flash loans.",
+      "teamName": "DeFi Innovators",
       "category": "Web3",
-      "imageUrl": "https://example.com/image2.png",
-      "demoUrl": "https://demo.example.com/project2",
-      "githubUrl": "https://github.com/team/project2"
+      "imageUrl": "https://placeholder.com/defi-protocol.png",
+      "demoUrl": "https://demo.defilending.xyz",
+      "githubUrl": "https://github.com/defi-innovators/lending-protocol"
+    },
+    {
+      "title": "Smart Home IoT Hub",
+      "description": "Blockchain-powered IoT management system with end-to-end encryption and decentralized device authentication. Control your smart home devices securely.",
+      "teamName": "IoT Builders",
+      "category": "IoT",
+      "imageUrl": "https://placeholder.com/iot-hub.png",
+      "demoUrl": "https://demo.smarthomehub.io",
+      "githubUrl": "https://github.com/iot-builders/smart-home-hub"
     }
   ]
 }

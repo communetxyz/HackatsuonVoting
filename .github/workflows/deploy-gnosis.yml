@@ -1,9 +1,9 @@
 name: Deploy to Gnosis Chain
 
 on:
-  push:
+  pull_request:
     branches:
-      - main
+      - dev
   release:
     types: [published]
   workflow_dispatch:
@@ -75,6 +75,7 @@ jobs:
 
           forge verify-contract \
             --chain-id 100 \
+            --verifier-url https://api.gnosisscan.io/api \
             --compiler-version v0.8.20 \
             --watch \
             ${{ steps.deploy.outputs.contract_address }} \

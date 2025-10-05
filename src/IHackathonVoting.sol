@@ -21,20 +21,8 @@ interface IHackathonVoting {
         uint256 voteCount;
     }
 
-    struct ProjectInfo {
-        uint256 id;
-        string title;
-        string description;
-        string teamName;
-        string category;
-        string imageUrl;
-        string demoUrl;
-        string githubUrl;
-        uint256 voteCount;
-    }
-
     struct VotingData {
-        ProjectInfo[] projects; // All projects with complete details
+        Project[] projects; // All projects with complete details
         uint256 totalVotes; // Sum of all votes across projects
         uint256 totalVoters; // Count of unique voter addresses
         uint256[] voterProjectIds; // IDs of projects the viewer voted for (max 2)
