@@ -147,11 +147,11 @@ jobs:
             \`\`\`bash
             # Register a project (owner only)
             cast send ${contractAddress} \\
-              "registerProject(string,string,string,uint8,string,string,string)" \\
+              "registerProject(string,string,string,string,string,string,string)" \\
               "Test Project" \\
               "A test project" \\
               "Test Team" \\
-              0 \\
+              "AI" \\
               "https://image.url" \\
               "https://demo.url" \\
               "https://github.url" \\

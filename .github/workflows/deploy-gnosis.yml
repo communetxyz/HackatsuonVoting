@@ -91,11 +91,11 @@ jobs:
 
           # Register a test project
           REGISTER_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,uint8,string,string,string)" \
+            "registerProject(string,string,string,string,string,string,string)" \
             "Test Project" \
             "A test project for CI/CD verification" \
             "Test Team" \
-            0 \
+            "AI" \
             "https://example.com/image.png" \
             "https://example.com/demo" \
             "https://github.com/test/project" \
@@ -241,11 +241,11 @@ jobs:
           Register a project:
           ```bash
           cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,uint8,string,string,string)" \
+            "registerProject(string,string,string,string,string,string,string)" \
             "Project Title" \
             "Project Description" \
             "Team Name" \
-            0 \
+            "AI" \
             "https://image.url" \
             "https://demo.url" \
             "https://github.url" \
