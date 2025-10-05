@@ -211,6 +211,42 @@ Hackathon participants and judges need a transparent, user-friendly interface to
 ### 5.2 User Flow Diagram
 
 ```mermaid
+stateDiagram-v2
+    [*] --> Disconnected
+    Disconnected --> Connecting: Click Connect
+    Connecting --> Connected: Approval Success
+    Connecting --> Disconnected: Rejection/Error
+    Connected --> Voting: Has Votes
+    Connected --> Voted: Max Votes Used
+    Voting --> Voting: Cast Vote (1st)
+    Voting --> Voted: Cast Vote (2nd)
+    Voted --> Results: Admin Resolves
+    Connected --> Results: Already Resolved
+```
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Wallet
+    participant Contract
+
+    User->>Frontend: Click Vote Button
+    Frontend->>Frontend: Validate (not voted, has votes)
+    Frontend->>Wallet: Request vote(projectId) tx
+    Wallet->>User: Prompt signature
+    User->>Wallet: Approve
+    Wallet->>Contract: Submit transaction
+    Contract-->>Wallet: Transaction hash
+    Wallet-->>Frontend: Transaction hash
+    Frontend->>Frontend: Show loading state
+    Frontend->>Contract: Wait for confirmation
+    Contract-->>Frontend: Confirmed
+    Frontend->>Contract: getVotingData(address)
+    Contract-->>Frontend: Updated data
+    Frontend->>User: Show success + updated UI
+```
+```mermaid
 flowchart TD
     A[User Visits Site] --> B{Wallet Connected?}
     B -->|No| C[Show Connect Wallet Button]
