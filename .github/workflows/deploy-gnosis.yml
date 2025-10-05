@@ -72,6 +72,7 @@ jobs:
           sleep 60
 
       - name: Verify contract on GnosisScan
+        continue-on-error: true
         env:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
           GNOSISSCAN_API_KEY: ${{ secrets.GNOSISSCAN_API_KEY }}
@@ -89,8 +90,8 @@ jobs:
             --etherscan-api-key $GNOSISSCAN_API_KEY \
             --compiler-version "v${COMPILER_VERSION}" \
             --watch || {
-              echo "::error::Contract verification failed"
-              exit 1
+              echo "::warning::Contract verification failed - contract deployed but not verified"
+              echo "Please verify manually at https://gnosisscan.io/verifyContract?a=${{ steps.deploy.outputs.contract_address }}"
             }
 
 
