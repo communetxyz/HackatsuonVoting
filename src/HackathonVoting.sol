@@ -10,7 +10,6 @@ import "./IHackathonVoting.sol";
  * @dev Implements a voting system where each address can vote for up to 2 different projects
  */
 contract HackathonVoting is IHackathonVoting, Ownable {
-
     // ============ State Variables ============
 
     bool public override votingResolved;
@@ -79,24 +78,14 @@ contract HackathonVoting is IHackathonVoting, Ownable {
 
         // Validate all arrays have the same length
         if (
-            descriptions.length != length ||
-            teamNames.length != length ||
-            categories.length != length ||
-            imageUrls.length != length ||
-            demoUrls.length != length ||
-            githubUrls.length != length
+            descriptions.length != length || teamNames.length != length || categories.length != length
+                || imageUrls.length != length || demoUrls.length != length || githubUrls.length != length
         ) revert ArrayLengthMismatch();
 
         // Register all projects
         for (uint256 i = 0; i < length; i++) {
             _registerProject(
-                titles[i],
-                descriptions[i],
-                teamNames[i],
-                categories[i],
-                imageUrls[i],
-                demoUrls[i],
-                githubUrls[i]
+                titles[i], descriptions[i], teamNames[i], categories[i], imageUrls[i], demoUrls[i], githubUrls[i]
             );
         }
     }

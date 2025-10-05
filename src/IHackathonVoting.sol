@@ -7,7 +7,6 @@ pragma solidity ^0.8.20;
  * @dev Defines all events, errors, enums, structs, and external functions
  */
 interface IHackathonVoting {
-
     // ============ Structs ============
 
     struct Project {
@@ -35,12 +34,12 @@ interface IHackathonVoting {
     }
 
     struct VotingData {
-        ProjectInfo[] projects;        // All projects with complete details
-        uint256 totalVotes;            // Sum of all votes across projects
-        uint256 totalVoters;           // Count of unique voter addresses
-        uint256[] voterProjectIds;     // IDs of projects the viewer voted for (max 2)
-        bool votingResolved;           // Whether voting has been finalized
-        uint256 winnerProjectId;       // ID of winning project (0 if not resolved)
+        ProjectInfo[] projects; // All projects with complete details
+        uint256 totalVotes; // Sum of all votes across projects
+        uint256 totalVoters; // Count of unique voter addresses
+        uint256[] voterProjectIds; // IDs of projects the viewer voted for (max 2)
+        bool votingResolved; // Whether voting has been finalized
+        uint256 winnerProjectId; // ID of winning project (0 if not resolved)
     }
 
     // ============ Events ============
@@ -52,12 +51,7 @@ interface IHackathonVoting {
      * @param teamName The name of the team
      * @param category The category of the project
      */
-    event ProjectRegistered(
-        uint256 indexed projectId,
-        string title,
-        string teamName,
-        string category
-    );
+    event ProjectRegistered(uint256 indexed projectId, string title, string teamName, string category);
 
     /**
      * @notice Emitted when a vote is cast
@@ -65,11 +59,7 @@ interface IHackathonVoting {
      * @param projectId The ID of the project voted for
      * @param newVoteCount The updated vote count for the project
      */
-    event VoteCast(
-        address indexed voter,
-        uint256 indexed projectId,
-        uint256 newVoteCount
-    );
+    event VoteCast(address indexed voter, uint256 indexed projectId, uint256 newVoteCount);
 
     /**
      * @notice Emitted when voting is resolved and winner is determined
@@ -77,11 +67,7 @@ interface IHackathonVoting {
      * @param winnerTitle The title of the winning project
      * @param winnerVoteCount The final vote count of the winner
      */
-    event VotingResolved(
-        uint256 indexed winnerProjectId,
-        string winnerTitle,
-        uint256 winnerVoteCount
-    );
+    event VotingResolved(uint256 indexed winnerProjectId, string winnerTitle, uint256 winnerVoteCount);
 
     // ============ Errors ============
 
@@ -233,5 +219,4 @@ interface IHackathonVoting {
      * @return Total unique voter count
      */
     function totalVoters() external view returns (uint256);
-
 }

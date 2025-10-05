@@ -57,21 +57,9 @@ contract HackathonVotingTest is Test {
     }
 
     function test_RegisterMultipleProjects() public {
-        voting.registerProject(
-            "AI Project",
-            "Description 1",
-            "Team A",
-            "AI",
-            "", "", ""
-        );
+        voting.registerProject("AI Project", "Description 1", "Team A", "AI", "", "", "");
 
-        voting.registerProject(
-            "Web3 Project",
-            "Description 2",
-            "Team B",
-            "Web3",
-            "", "", ""
-        );
+        voting.registerProject("Web3 Project", "Description 2", "Team B", "Web3", "", "", "");
 
         assertEq(voting.projectCount(), 2);
     }
@@ -148,25 +136,13 @@ contract HackathonVotingTest is Test {
     function test_RevertWhen_NonOwnerRegistersProject() public {
         vm.prank(voter1);
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", voter1));
-        voting.registerProject(
-            "Project",
-            "Description",
-            "Team",
-            "AI",
-            "", "", ""
-        );
+        voting.registerProject("Project", "Description", "Team", "AI", "", "", "");
     }
 
     // ============ Voting Tests ============
 
     function test_Vote() public {
-        voting.registerProject(
-            "Project 1",
-            "Description",
-            "Team A",
-            "AI",
-            "", "", ""
-        );
+        voting.registerProject("Project 1", "Description", "Team A", "AI", "", "", "");
 
         vm.prank(voter1);
         vm.expectEmit(true, true, false, true);
@@ -184,21 +160,9 @@ contract HackathonVotingTest is Test {
     }
 
     function test_VoteTwoDifferentProjects() public {
-        voting.registerProject(
-            "Project 1",
-            "Description 1",
-            "Team A",
-            "AI",
-            "", "", ""
-        );
+        voting.registerProject("Project 1", "Description 1", "Team A", "AI", "", "", "");
 
-        voting.registerProject(
-            "Project 2",
-            "Description 2",
-            "Team B",
-            "Web3",
-            "", "", ""
-        );
+        voting.registerProject("Project 2", "Description 2", "Team B", "Web3", "", "", "");
 
         vm.startPrank(voter1);
         voting.vote(1);
@@ -217,13 +181,7 @@ contract HackathonVotingTest is Test {
     }
 
     function test_MultipleVotersVoteForSameProject() public {
-        voting.registerProject(
-            "Project 1",
-            "Description",
-            "Team A",
-            "AI",
-            "", "", ""
-        );
+        voting.registerProject("Project 1", "Description", "Team A", "AI", "", "", "");
 
         vm.prank(voter1);
         voting.vote(1);
@@ -251,13 +209,7 @@ contract HackathonVotingTest is Test {
     }
 
     function test_RevertWhen_VotingForSameProjectTwice() public {
-        voting.registerProject(
-            "Project 1",
-            "Description",
-            "Team A",
-            "AI",
-            "", "", ""
-        );
+        voting.registerProject("Project 1", "Description", "Team A", "AI", "", "", "");
 
         vm.startPrank(voter1);
         voting.vote(1);

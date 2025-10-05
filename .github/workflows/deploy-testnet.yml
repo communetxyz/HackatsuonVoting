@@ -42,7 +42,7 @@ jobs:
         id: deploy
         env:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
-          HOLESKY_RPC_URL: https://ethereum-holesky-rpc.publicnode.com
+          HOLESKY_RPC_URL: https://1rpc.io/holesky
         run: |
           echo "Deploying HackathonVoting to Holesky testnet..."
 
@@ -155,14 +155,14 @@ jobs:
               "https://image.url" \\
               "https://demo.url" \\
               "https://github.url" \\
-              --rpc-url https://ethereum-holesky-rpc.publicnode.com \\
+              --rpc-url https://1rpc.io/holesky \\
               --private-key $PRIVATE_KEY
 
             # Vote for a project
             cast send ${contractAddress} \\
               "vote(uint256)" \\
               1 \\
-              --rpc-url https://ethereum-holesky-rpc.publicnode.com \\
+              --rpc-url https://1rpc.io/holesky \\
               --private-key $PRIVATE_KEY
 
             # Get voting data
