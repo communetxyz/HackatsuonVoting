@@ -1,0 +1,299 @@
+name: Deploy to Gnosis Chain
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-gnosis:
+    name: Deploy to Gnosis Chain
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install dependencies
+        run: forge install
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Deploy HackathonVoting
+        id: deploy
+        env:
+          PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+        run: |
+          echo "Deploying HackathonVoting to Gnosis Chain..."
+
+          DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
+            --rpc-url $GNOSIS_RPC_URL \
+            --broadcast \
+            --slow \
+            -vvvv)
+
+          echo "$DEPLOY_OUTPUT"
+
+          # Extract contract address from deployment output (from Logs section, not traces)
+          CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "^  HackathonVoting deployed to:" | awk '{print $NF}')
+
+          echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
+          echo "Deployed to: $CONTRACT_ADDRESS"
+
+      - name: Wait for blockchain indexing
+        run: |
+          echo "Waiting 60 seconds for blockchain indexing..."
+          sleep 60
+
+      - name: Register projects from gnosis-projects.json
+        env:
+          PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          VOTING_CONTRACT_ADDRESS: ${{ steps.deploy.outputs.contract_address }}
+        run: |
+          echo "Registering projects from gnosis-projects.json..."
+
+          forge script script/SetupProjects.s.sol:SetupProjectsScript \
+            --rpc-url $GNOSIS_RPC_URL \
+            --broadcast \
+            --slow \
+            -vvvv
+
+      - name: Verify contract on Blockscout
+        env:
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+        run: |
+          echo "Verifying HackathonVoting contract on Blockscout..."
+
+          # Get the exact compiler version metadata from the compiled artifact
+          COMPILER_VERSION=$(cat out/HackathonVoting.sol/HackathonVoting.json | jq -r '.metadata.compiler.version')
+          echo "Exact compiler version from artifact: $COMPILER_VERSION"
+
+          forge verify-contract \
+            ${{ steps.deploy.outputs.contract_address }} \
+            src/HackathonVoting.sol:HackathonVoting \
+            --chain-id 100 \
+            --compiler-version "v${COMPILER_VERSION}" \
+            --verifier blockscout \
+            --verifier-url https://gnosis.blockscout.com/api \
+            --watch
+
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Gnosis Chain Mainnet Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Network:** Gnosis Chain" >> $GITHUB_STEP_SUMMARY
+          echo "**Chain ID:** 100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Contracts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract | Address | Explorer |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| HackathonVoting | \`${{ steps.deploy.outputs.contract_address }}\` | [View on Blockscout](https://gnosis.blockscout.com/address/${{ steps.deploy.outputs.contract_address }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Contract Interface" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Admin Functions:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`registerProject()\` - Register a new project" >> $GITHUB_STEP_SUMMARY
+          echo "- \`resolveVoting()\` - Finalize voting and determine winner" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**User Functions:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`vote(uint256 projectId)\` - Vote for a project" >> $GITHUB_STEP_SUMMARY
+          echo "- \`getMyVotes()\` - Get your voting history" >> $GITHUB_STEP_SUMMARY
+          echo "- \`getVotingData(address)\` - Get all voting data" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Save deployment artifacts
+        run: |
+          mkdir -p deployments/gnosis
+
+          cat > deployments/gnosis/deployment.json << EOF
+          {
+            "network": "gnosis",
+            "chainId": 100,
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployer": "GitHub Actions",
+            "gitCommit": "${{ github.sha }}",
+            "contracts": {
+              "HackathonVoting": {
+                "address": "${{ steps.deploy.outputs.contract_address }}",
+                "explorer": "https://gnosis.blockscout.com/address/${{ steps.deploy.outputs.contract_address }}",
+                "verified": true
+              }
+            }
+          }
+          EOF
+
+          cat deployments/gnosis/deployment.json
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gnosis-deployment
+          path: deployments/gnosis/
+
+      - name: Create deployment notes
+        id: deployment_notes
+        run: |
+          cat > deployment-notes.md << 'EOF'
+          # HackathonVoting Deployment - Gnosis Chain
+
+          ## Contract Details
+
+          - **Network:** Gnosis Chain (Mainnet)
+          - **Chain ID:** 100
+          - **Contract Address:** `${{ steps.deploy.outputs.contract_address }}`
+          - **Explorer:** [View on Blockscout](https://gnosis.blockscout.com/address/${{ steps.deploy.outputs.contract_address }})
+          - **Deployment Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - **Git Commit:** ${{ github.sha }}
+
+          ## Usage
+
+          ### Admin Functions (Owner Only)
+
+          Register a project:
+          ```bash
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "registerProject(string,string,string,string,string,string,string)" \
+            "Project Title" \
+            "Project Description" \
+            "Team Name" \
+            "AI" \
+            "https://image.url" \
+            "https://demo.url" \
+            "https://github.url" \
+            --rpc-url https://rpc.gnosischain.com \
+            --private-key $PRIVATE_KEY
+          ```
+
+          Resolve voting:
+          ```bash
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "resolveVoting()" \
+            --rpc-url https://rpc.gnosischain.com \
+            --private-key $PRIVATE_KEY
+          ```
+
+          ### User Functions
+
+          Vote for a project:
+          ```bash
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "vote(uint256)" \
+            1 \
+            --rpc-url https://rpc.gnosischain.com \
+            --private-key $PRIVATE_KEY
+          ```
+
+          Get voting data:
+          ```bash
+          cast call ${{ steps.deploy.outputs.contract_address }} \
+            "getVotingData(address)" \
+            <YOUR_ADDRESS> \
+            --rpc-url https://rpc.gnosischain.com
+          ```
+
+          Get your votes:
+          ```bash
+          cast call ${{ steps.deploy.outputs.contract_address }} \
+            "getMyVotes()(uint256[])" \
+            --rpc-url https://rpc.gnosischain.com \
+            --from <YOUR_ADDRESS>
+          ```
+
+          ## Features
+
+          - ✅ Two votes per address
+          - ✅ Flexible string-based project categories
+          - ✅ Transparent on-chain voting
+          - ✅ Immutable vote records
+          - ✅ Comprehensive view function
+          - ✅ Gas optimized for Gnosis Chain
+
+          ## Security
+
+          - **Ownable:** Admin functions protected by OpenZeppelin's Ownable
+          - **Custom Errors:** Gas-efficient error handling
+          - **Verified Contract:** Source code verified on Blockscout
+          EOF
+
+          cat deployment-notes.md
+
+      - name: Create Release
+        if: github.event_name == 'release' || github.event.inputs.create_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.release_tag || github.ref_name }}
+          body_path: deployment-notes.md
+          files: |
+            deployments/gnosis/deployment.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const contractAddress = '${{ steps.deploy.outputs.contract_address }}';
+            const explorerUrl = `https://gnosis.blockscout.com/address/${contractAddress}`;
+
+            const comment = `## 🚀 Gnosis Chain Mainnet Deployment
+
+            **Network:** Gnosis Chain
+            **Chain ID:** 100
+
+            ### Deployed Contracts
+
+            | Contract | Address | Explorer |
+            | --- | --- | --- |
+            | HackathonVoting | \`${contractAddress}\` | [View on Blockscout](${explorerUrl}) |
+
+            ### Quick Start
+
+            **Vote for a project:**
+            \`\`\`bash
+            cast send ${contractAddress} \\
+              "vote(uint256)" \\
+              1 \\
+              --rpc-url https://rpc.gnosischain.com \\
+              --private-key $PRIVATE_KEY
+            \`\`\`
+
+            **Get voting data:**
+            \`\`\`bash
+            cast call ${contractAddress} \\
+              "getVotingData(address)" \\
+              <YOUR_ADDRESS> \\
+              --rpc-url https://rpc.gnosischain.com
+            \`\`\`
+
+            **Deployment Time:** ${new Date().toISOString()}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
