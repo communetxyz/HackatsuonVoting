@@ -117,7 +117,7 @@ Hackathon participants and judges need a transparent, user-friendly interface to
 | A4 | Transaction rejected | User denies signature | Show "Transaction cancelled" notification, keep UI state |
 | A5 | Already voted for project | `AlreadyVotedForProject` error | Show "You already voted for this project" message |
 | A6 | Max votes reached | `MaxVotesReached` error | Show "You've used both votes" message, hide vote buttons |
-| A7 | Voting already resolved | `VotingAlreadyResolved` error | Show "Voting has ended" message with winner information |
+| A7 | Voting already resolved | `VotingAlreadyResolved` error | Show "Voting has ended" message |
 | A8 | Project not found | `ProjectNotFound` error | Show 404 project page, link to home |
 | A9 | Transaction failed | RPC error, network timeout | Show error message with transaction hash, retry button |
 | A10 | No projects registered | `projectCount = 0` | Show "No projects yet" empty state |
@@ -221,7 +221,7 @@ flowchart TD
     F -->|No| H[Show Error Message]
     B -->|Yes| G
     G --> I{Voting Resolved?}
-    I -->|Yes| J[Show Winner Banner & Final Results]
+    I -->|Yes| J[Show 'Voting Ended' Message]
     I -->|No| K[Show Projects & Voting UI]
     K --> L{Has Votes Remaining?}
     L -->|Yes| M[Enable Vote Buttons]
