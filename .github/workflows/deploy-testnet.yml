@@ -3,7 +3,7 @@ name: Deploy to Holesky Testnet
 on:
   pull_request:
     branches:
-      - main
+      - dev
   push:
     branches:
       - main
