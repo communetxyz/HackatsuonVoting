@@ -71,13 +71,11 @@ jobs:
           echo "Waiting 60 seconds for blockchain indexing..."
           sleep 60
 
-      - name: Verify contract on GnosisScan
-        continue-on-error: true
+      - name: Verify contract on Blockscout
         env:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
-          GNOSISSCAN_API_KEY: ${{ secrets.GNOSISSCAN_API_KEY }}
         run: |
-          echo "Verifying HackathonVoting contract on GnosisScan..."
+          echo "Verifying HackathonVoting contract on Blockscout..."
 
           # Get the exact compiler version metadata from the compiled artifact
           COMPILER_VERSION=$(cat out/HackathonVoting.sol/HackathonVoting.json | jq -r '.metadata.compiler.version')
@@ -87,12 +85,10 @@ jobs:
             ${{ steps.deploy.outputs.contract_address }} \
             src/HackathonVoting.sol:HackathonVoting \
             --chain-id 100 \
-            --etherscan-api-key $GNOSISSCAN_API_KEY \
             --compiler-version "v${COMPILER_VERSION}" \
-            --watch || {
-              echo "::warning::Contract verification failed - contract deployed but not verified"
-              echo "Please verify manually at https://gnosisscan.io/verifyContract?a=${{ steps.deploy.outputs.contract_address }}"
-            }
+            --verifier blockscout \
+            --verifier-url https://gnosis.blockscout.com/api \
+            --watch
 
 
       - name: Create deployment summary
