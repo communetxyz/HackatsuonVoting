@@ -104,11 +104,23 @@ jobs:
         run: |
           sleep 10
 
+          # Get token decimals
+          DECIMALS=$(cast call $PRIZE_TOKEN_ADDRESS \
+            "decimals()(uint8)" \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Token decimals: $DECIMALS"
+
+          # Calculate actual amount with decimals using bc: PRIZE_AMOUNT * 10^DECIMALS
+          AMOUNT_WITH_DECIMALS=$(echo "$PRIZE_AMOUNT * 10^$DECIMALS" | bc)
+
+          echo "Transferring $PRIZE_AMOUNT tokens ($AMOUNT_WITH_DECIMALS raw units) to contract"
+
           # Transfer prize tokens to the contract for prize distribution
           cast send $PRIZE_TOKEN_ADDRESS \
             "transfer(address,uint256)" \
             ${{ steps.deploy.outputs.contract_address }} \
-            $PRIZE_AMOUNT \
+            $AMOUNT_WITH_DECIMALS \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
