@@ -130,7 +130,7 @@ jobs:
           echo "Registering 3 mock projects for testing..."
 
           # Register all 3 projects in a single transaction using registerProjects
-          cast send ${{ steps.deploy.outputs.contract_address }} \
+          CALLDATA=$(cast calldata \
             "registerProjects(string[],string[],string[],string[],string[],string[],string[],address[])" \
             '["AI-Powered Code Assistant","DeFi Yield Optimizer","Smart Home Energy Manager"]' \
             '["An intelligent code completion tool using GPT-4 to help developers write better code faster","Automatically find and optimize yield farming strategies across multiple DeFi protocols","IoT-based system that optimizes energy consumption in real-time using ML predictions"]' \
@@ -139,7 +139,10 @@ jobs:
             '["https://placeholder.com/ai-assistant.png","https://placeholder.com/defi-optimizer.png","https://placeholder.com/smart-home.png"]' \
             '["https://demo.codeassistant.dev","https://demo.yieldhunters.fi","https://demo.ecotechhome.io"]' \
             '["https://github.com/codewizards/ai-assistant","https://github.com/yieldhunters/optimizer","https://github.com/ecotech/energy-manager"]' \
-            '["'"$TEAM_ADDRESS"'","'"$TEAM_ADDRESS"'","'"$TEAM_ADDRESS"'"]' \
+            ["$TEAM_ADDRESS","$TEAM_ADDRESS","$TEAM_ADDRESS"])
+
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "$CALLDATA" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
