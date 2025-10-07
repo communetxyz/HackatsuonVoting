@@ -6,8 +6,8 @@ import "../src/HackathonVoting.sol";
 
 contract SetupProjectsScript is Script {
     function run() external {
-        // Use gnosis-projects.json for Gnosis Chain (chain ID 100), otherwise use projects.json
-        string memory projectFile = block.chainid == 100 ? "/gnosis-projects.json" : "/projects.json";
+        // Use gnosis-deploy.json for Gnosis Chain (chain ID 100), otherwise use holesky-deploy.json
+        string memory projectFile = block.chainid == 100 ? "/gnosis-deploy.json" : "/holesky-deploy.json";
         string memory json = vm.readFile(string.concat(vm.projectRoot(), projectFile));
         bytes memory projectsRaw = vm.parseJson(json, ".projects");
         Project[] memory projectsList = abi.decode(projectsRaw, (Project[]));
@@ -20,6 +20,7 @@ contract SetupProjectsScript is Script {
         string[] memory imageUrls = new string[](numProjects);
         string[] memory demoUrls = new string[](numProjects);
         string[] memory githubUrls = new string[](numProjects);
+        address[] memory teamAddresses = new address[](numProjects);
 
         for (uint256 i = 0; i < numProjects; i++) {
             titles[i] = projectsList[i].title;
@@ -29,11 +30,12 @@ contract SetupProjectsScript is Script {
             imageUrls[i] = projectsList[i].imageUrl;
             demoUrls[i] = projectsList[i].demoUrl;
             githubUrls[i] = projectsList[i].githubUrl;
+            teamAddresses[i] = projectsList[i].teamAddress;
         }
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         HackathonVoting(vm.envAddress("VOTING_CONTRACT_ADDRESS")).registerProjects(
-            titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls
+            titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls, teamAddresses
         );
         vm.stopBroadcast();
 
@@ -49,4 +51,5 @@ struct Project {
     string imageUrl;
     string demoUrl;
     string githubUrl;
+    address teamAddress;
 }

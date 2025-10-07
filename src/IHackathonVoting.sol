@@ -19,6 +19,7 @@ interface IHackathonVoting {
         string demoUrl;
         string githubUrl;
         uint256 voteCount;
+        address teamAddress;
     }
 
     struct VotingData {
@@ -106,6 +107,7 @@ interface IHackathonVoting {
      * @param imageUrl URL to project image
      * @param demoUrl URL to project demo
      * @param githubUrl URL to project GitHub repository
+     * @param teamAddress Address to receive prize if project wins
      */
     function registerProject(
         string memory title,
@@ -114,7 +116,8 @@ interface IHackathonVoting {
         string memory category,
         string memory imageUrl,
         string memory demoUrl,
-        string memory githubUrl
+        string memory githubUrl,
+        address teamAddress
     ) external;
 
     /**
@@ -127,6 +130,7 @@ interface IHackathonVoting {
      * @param imageUrls Array of image URLs
      * @param demoUrls Array of demo URLs
      * @param githubUrls Array of GitHub URLs
+     * @param teamAddresses Array of team addresses to receive prizes
      */
     function registerProjects(
         string[] memory titles,
@@ -135,7 +139,8 @@ interface IHackathonVoting {
         string[] memory categories,
         string[] memory imageUrls,
         string[] memory demoUrls,
-        string[] memory githubUrls
+        string[] memory githubUrls,
+        address[] memory teamAddresses
     ) external;
 
     /**

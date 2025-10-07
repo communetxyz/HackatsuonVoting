@@ -1,4 +1,8 @@
 {
+  "network": "gnosis",
+  "chainId": 100,
+  "prizeToken": "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
+  "prizeAmount": "3",
   "projects": [
     {
       "title": "AI-Powered Code Assistant",
@@ -7,7 +11,8 @@
       "category": "AI",
       "imageUrl": "https://placeholder.com/ai-assistant.png",
       "demoUrl": "https://demo.codeassistant.dev",
-      "githubUrl": "https://github.com/codewizards/ai-assistant"
+      "githubUrl": "https://github.com/codewizards/ai-assistant",
+      "teamAddress": "0x1111111111111111111111111111111111111111"
     },
     {
       "title": "DeFi Lending Protocol",
@@ -16,7 +21,8 @@
       "category": "Web3",
       "imageUrl": "https://placeholder.com/defi-protocol.png",
       "demoUrl": "https://demo.defilending.xyz",
-      "githubUrl": "https://github.com/defi-innovators/lending-protocol"
+      "githubUrl": "https://github.com/defi-innovators/lending-protocol",
+      "teamAddress": "0x2222222222222222222222222222222222222222"
     },
     {
       "title": "Smart Home IoT Hub",
@@ -25,7 +31,8 @@
       "category": "IoT",
       "imageUrl": "https://placeholder.com/iot-hub.png",
       "demoUrl": "https://demo.smarthomehub.io",
-      "githubUrl": "https://github.com/iot-builders/smart-home-hub"
+      "githubUrl": "https://github.com/iot-builders/smart-home-hub",
+      "teamAddress": "0x3333333333333333333333333333333333333333"
     }
   ]
 }

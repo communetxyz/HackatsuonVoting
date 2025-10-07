@@ -30,16 +30,28 @@ jobs:
         run: forge install
 
       - name: Build contracts
-        run: forge build
+        run: |
+          forge clean
+          forge build
+
+      - name: Load deployment configuration
+        id: config
+        run: |
+          # Read configuration from gnosis-deploy.json
+          PRIZE_TOKEN=$(jq -r '.prizeToken' gnosis-deploy.json)
+          PRIZE_AMOUNT=$(jq -r '.prizeAmount' gnosis-deploy.json)
+
+          echo "prize_token=$PRIZE_TOKEN" >> $GITHUB_OUTPUT
+          echo "prize_amount=$PRIZE_AMOUNT" >> $GITHUB_OUTPUT
 
       - name: Deploy HackathonVoting
         id: deploy
         env:
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
+          PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
-          echo "Deploying HackathonVoting to Gnosis Chain..."
-
           DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
             --rpc-url $GNOSIS_RPC_URL \
             --broadcast \
@@ -55,18 +67,14 @@ jobs:
           echo "Deployed to: $CONTRACT_ADDRESS"
 
       - name: Wait for blockchain indexing
-        run: |
-          echo "Waiting 60 seconds for blockchain indexing..."
-          sleep 60
+        run: sleep 60
 
-      - name: Register projects from gnosis-projects.json
+      - name: Register projects from gnosis-deploy.json
         env:
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
           VOTING_CONTRACT_ADDRESS: ${{ steps.deploy.outputs.contract_address }}
         run: |
-          echo "Registering projects from gnosis-projects.json..."
-
           forge script script/SetupProjects.s.sol:SetupProjectsScript \
             --rpc-url $GNOSIS_RPC_URL \
             --broadcast \
@@ -77,17 +85,18 @@ jobs:
         env:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
         run: |
-          echo "Verifying HackathonVoting contract on Blockscout..."
-
           # Get the exact compiler version metadata from the compiled artifact
           COMPILER_VERSION=$(cat out/HackathonVoting.sol/HackathonVoting.json | jq -r '.metadata.compiler.version')
-          echo "Exact compiler version from artifact: $COMPILER_VERSION"
 
           forge verify-contract \
             ${{ steps.deploy.outputs.contract_address }} \
             src/HackathonVoting.sol:HackathonVoting \
             --chain-id 100 \
             --compiler-version "v${COMPILER_VERSION}" \
+            --num-of-optimizations 200 \
+            --evm-version paris \
+            --skip-is-verified-check \
+            --constructor-args $(cast abi-encode "constructor(address,uint256)" "${{ steps.config.outputs.prize_token }}" "${{ steps.config.outputs.prize_amount }}") \
             --verifier blockscout \
             --verifier-url https://gnosis.blockscout.com/api \
             --watch
