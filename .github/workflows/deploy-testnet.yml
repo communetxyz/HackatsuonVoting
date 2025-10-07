@@ -127,19 +127,20 @@ jobs:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
           TEAM_ADDRESS: "0x86213f1cf0a501857B70Df35c1cb3C2EcF112844"
         run: |
-          echo "Registering 3 mock projects for testing..."
+          echo "Registering 4 mock projects for testing..."
 
-          # Register all 3 projects in a single transaction using registerProjects
+          # Register all 4 projects in a single transaction using registerProjects
+          # The 4th project won't receive votes, to verify only top 3 get prizes
           CALLDATA=$(cast calldata \
             "registerProjects(string[],string[],string[],string[],string[],string[],string[],address[])" \
-            '["AI-Powered Code Assistant","DeFi Yield Optimizer","Smart Home Energy Manager"]' \
-            '["An intelligent code completion tool using GPT-4 to help developers write better code faster","Automatically find and optimize yield farming strategies across multiple DeFi protocols","IoT-based system that optimizes energy consumption in real-time using ML predictions"]' \
-            '["CodeWizards","YieldHunters","EcoTech"]' \
-            '["AI","Web3","IoT"]' \
-            '["https://placeholder.com/ai-assistant.png","https://placeholder.com/defi-optimizer.png","https://placeholder.com/smart-home.png"]' \
-            '["https://demo.codeassistant.dev","https://demo.yieldhunters.fi","https://demo.ecotechhome.io"]' \
-            '["https://github.com/codewizards/ai-assistant","https://github.com/yieldhunters/optimizer","https://github.com/ecotech/energy-manager"]' \
-            ["$TEAM_ADDRESS","$TEAM_ADDRESS","$TEAM_ADDRESS"])
+            '["AI-Powered Code Assistant","DeFi Yield Optimizer","Smart Home Energy Manager","Blockchain Gaming Platform"]' \
+            '["An intelligent code completion tool using GPT-4 to help developers write better code faster","Automatically find and optimize yield farming strategies across multiple DeFi protocols","IoT-based system that optimizes energy consumption in real-time using ML predictions","Play-to-earn gaming ecosystem built on blockchain technology"]' \
+            '["CodeWizards","YieldHunters","EcoTech","GameChain"]' \
+            '["AI","Web3","IoT","Gaming"]' \
+            '["https://placeholder.com/ai-assistant.png","https://placeholder.com/defi-optimizer.png","https://placeholder.com/smart-home.png","https://placeholder.com/gaming-platform.png"]' \
+            '["https://demo.codeassistant.dev","https://demo.yieldhunters.fi","https://demo.ecotechhome.io","https://demo.gamechain.io"]' \
+            '["https://github.com/codewizards/ai-assistant","https://github.com/yieldhunters/optimizer","https://github.com/ecotech/energy-manager","https://github.com/gamechain/platform"]' \
+            ["$TEAM_ADDRESS","$TEAM_ADDRESS","$TEAM_ADDRESS","$TEAM_ADDRESS"])
 
           cast send ${{ steps.deploy.outputs.contract_address }} \
             "$CALLDATA" \
@@ -303,15 +304,16 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Projects Registered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. **AI-Powered Code Assistant** (AI) - by CodeWizards (1 vote)" >> $GITHUB_STEP_SUMMARY
-          echo "2. **DeFi Yield Optimizer** (Web3) - by YieldHunters (1 vote)" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Smart Home Energy Manager** (IoT) - by EcoTech (1 vote)" >> $GITHUB_STEP_SUMMARY
+          echo "1. **AI-Powered Code Assistant** (AI) - by CodeWizards (1 vote) 🏆" >> $GITHUB_STEP_SUMMARY
+          echo "2. **DeFi Yield Optimizer** (Web3) - by YieldHunters (1 vote) 🏆" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Smart Home Energy Manager** (IoT) - by EcoTech (1 vote) 🏆" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Blockchain Gaming Platform** (Gaming) - by GameChain (0 votes) ❌" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Vote Transaction:** [\`${{ steps.test_projects.outputs.vote_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.test_projects.outputs.vote_tx_hash }})" >> $GITHUB_STEP_SUMMARY
           echo "- **Resolve Transaction:** [\`${{ steps.resolve_voting.outputs.resolve_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.resolve_voting.outputs.resolve_tx_hash }})" >> $GITHUB_STEP_SUMMARY
-          echo "- **Prize Distribution:** ✅ Verified (3 tokens distributed: 1 to each top 3 project)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prize Distribution:** ✅ Verified (3 tokens distributed: 1 to each top 3 project, project 4 received 0)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
 
