@@ -95,7 +95,14 @@ contract HackathonVoting is IHackathonVoting, Ownable {
         // Register all projects
         for (uint256 i = 0; i < length; i++) {
             _registerProject(
-                titles[i], descriptions[i], teamNames[i], categories[i], imageUrls[i], demoUrls[i], githubUrls[i], teamAddresses[i]
+                titles[i],
+                descriptions[i],
+                teamNames[i],
+                categories[i],
+                imageUrls[i],
+                demoUrls[i],
+                githubUrls[i],
+                teamAddresses[i]
             );
         }
     }

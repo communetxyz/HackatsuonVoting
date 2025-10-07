@@ -127,7 +127,9 @@ contract HackathonVotingTest is Test {
         teamAddresses[1] = team2;
         teamAddresses[2] = team3;
 
-        voting.registerProjects(titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls, teamAddresses);
+        voting.registerProjects(
+            titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls, teamAddresses
+        );
 
         assertEq(voting.projectCount(), 3);
 
@@ -158,7 +160,9 @@ contract HackathonVotingTest is Test {
         address[] memory teamAddresses = new address[](2);
 
         vm.expectRevert(IHackathonVoting.ArrayLengthMismatch.selector);
-        voting.registerProjects(titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls, teamAddresses);
+        voting.registerProjects(
+            titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls, teamAddresses
+        );
     }
 
     function test_RevertWhen_NonOwnerRegistersProject() public {
