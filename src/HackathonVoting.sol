@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IHackathonVoting.sol";
 
 /**
@@ -17,6 +18,9 @@ contract HackathonVoting is IHackathonVoting, Ownable {
     uint256 public override projectCount;
     uint256 public override totalVoters;
 
+    IERC20 public prizeToken;
+    uint256 public prizeAmount;
+
     // Mappings
     mapping(uint256 => Project) public projects;
     mapping(address => mapping(uint256 => bool)) public hasVotedForProject;
@@ -25,8 +29,9 @@ contract HackathonVoting is IHackathonVoting, Ownable {
 
     // ============ Constructor ============
 
-    constructor() Ownable(msg.sender) {
-        // All state variables default to 0/false, no initialization needed
+    constructor(address _prizeToken, uint256 _prizeAmount) Ownable(msg.sender) {
+        prizeToken = IERC20(_prizeToken);
+        prizeAmount = _prizeAmount;
     }
 
     // ============ Admin Functions ============
@@ -41,6 +46,7 @@ contract HackathonVoting is IHackathonVoting, Ownable {
      * @param imageUrl URL to project image
      * @param demoUrl URL to project demo
      * @param githubUrl URL to project GitHub repository
+     * @param teamAddress Address to receive prize if project wins
      */
     function registerProject(
         string memory title,
@@ -49,9 +55,10 @@ contract HackathonVoting is IHackathonVoting, Ownable {
         string memory category,
         string memory imageUrl,
         string memory demoUrl,
-        string memory githubUrl
+        string memory githubUrl,
+        address teamAddress
     ) external override onlyOwner {
-        _registerProject(title, description, teamName, category, imageUrl, demoUrl, githubUrl);
+        _registerProject(title, description, teamName, category, imageUrl, demoUrl, githubUrl, teamAddress);
     }
 
     /**
@@ -64,6 +71,7 @@ contract HackathonVoting is IHackathonVoting, Ownable {
      * @param imageUrls Array of image URLs
      * @param demoUrls Array of demo URLs
      * @param githubUrls Array of GitHub URLs
+     * @param teamAddresses Array of team addresses to receive prizes
      */
     function registerProjects(
         string[] memory titles,
@@ -72,7 +80,8 @@ contract HackathonVoting is IHackathonVoting, Ownable {
         string[] memory categories,
         string[] memory imageUrls,
         string[] memory demoUrls,
-        string[] memory githubUrls
+        string[] memory githubUrls,
+        address[] memory teamAddresses
     ) external override onlyOwner {
         uint256 length = titles.length;
 
@@ -80,12 +89,13 @@ contract HackathonVoting is IHackathonVoting, Ownable {
         if (
             descriptions.length != length || teamNames.length != length || categories.length != length
                 || imageUrls.length != length || demoUrls.length != length || githubUrls.length != length
+                || teamAddresses.length != length
         ) revert ArrayLengthMismatch();
 
         // Register all projects
         for (uint256 i = 0; i < length; i++) {
             _registerProject(
-                titles[i], descriptions[i], teamNames[i], categories[i], imageUrls[i], demoUrls[i], githubUrls[i]
+                titles[i], descriptions[i], teamNames[i], categories[i], imageUrls[i], demoUrls[i], githubUrls[i], teamAddresses[i]
             );
         }
     }
@@ -101,7 +111,8 @@ contract HackathonVoting is IHackathonVoting, Ownable {
         string memory category,
         string memory imageUrl,
         string memory demoUrl,
-        string memory githubUrl
+        string memory githubUrl,
+        address teamAddress
     ) internal {
         projectCount++;
 
@@ -114,7 +125,8 @@ contract HackathonVoting is IHackathonVoting, Ownable {
             imageUrl: imageUrl,
             demoUrl: demoUrl,
             githubUrl: githubUrl,
-            voteCount: 0
+            voteCount: 0,
+            teamAddress: teamAddress
         });
 
         emit ProjectRegistered(projectCount, title, teamName, category);
@@ -128,21 +140,46 @@ contract HackathonVoting is IHackathonVoting, Ownable {
         if (votingResolved) revert VotingAlreadyResolved();
         if (projectCount == 0 || totalVoters == 0) revert NoVotesCast();
 
-        uint256 highestVotes = 0;
-        uint256 winnerId = 0;
+        // Find top 3 projects by vote count
+        uint256[3] memory topProjectIds;
+        uint256[3] memory topVoteCounts;
 
-        // Find project with highest vote count
         for (uint256 i = 1; i <= projectCount; i++) {
-            if (projects[i].voteCount > highestVotes) {
-                highestVotes = projects[i].voteCount;
-                winnerId = i;
+            uint256 currentVotes = projects[i].voteCount;
+
+            // Check if this project belongs in top 3
+            for (uint256 j = 0; j < 3; j++) {
+                if (currentVotes > topVoteCounts[j]) {
+                    // Shift lower rankings down
+                    for (uint256 k = 2; k > j; k--) {
+                        topVoteCounts[k] = topVoteCounts[k - 1];
+                        topProjectIds[k] = topProjectIds[k - 1];
+                    }
+                    // Insert current project
+                    topVoteCounts[j] = currentVotes;
+                    topProjectIds[j] = i;
+                    break;
+                }
             }
         }
 
         votingResolved = true;
-        winnerProjectId = winnerId;
+        winnerProjectId = topProjectIds[0];
 
-        emit VotingResolved(winnerId, projects[winnerId].title, highestVotes);
+        // Distribute prizes to top 3 winners
+        uint256 prizePerWinner = prizeAmount / 3;
+
+        for (uint256 i = 0; i < 3; i++) {
+            if (topProjectIds[i] != 0 && topVoteCounts[i] > 0) {
+                // Transfer prize to project's team address
+                address teamAddress = projects[topProjectIds[i]].teamAddress;
+                if (teamAddress != address(0)) {
+                    prizeToken.transfer(teamAddress, prizePerWinner);
+                }
+            }
+        }
+
+        emit VotingResolved(topProjectIds[0], projects[topProjectIds[0]].title, topVoteCounts[0]);
     }
 
     // ============ User Functions ============
@@ -202,7 +239,8 @@ contract HackathonVoting is IHackathonVoting, Ownable {
                 imageUrl: p.imageUrl,
                 demoUrl: p.demoUrl,
                 githubUrl: p.githubUrl,
-                voteCount: p.voteCount
+                voteCount: p.voteCount,
+                teamAddress: p.teamAddress
             });
         }
 

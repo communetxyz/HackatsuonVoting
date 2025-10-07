@@ -20,6 +20,7 @@ contract SetupProjectsScript is Script {
         string[] memory imageUrls = new string[](numProjects);
         string[] memory demoUrls = new string[](numProjects);
         string[] memory githubUrls = new string[](numProjects);
+        address[] memory teamAddresses = new address[](numProjects);
 
         for (uint256 i = 0; i < numProjects; i++) {
             titles[i] = projectsList[i].title;
@@ -29,11 +30,12 @@ contract SetupProjectsScript is Script {
             imageUrls[i] = projectsList[i].imageUrl;
             demoUrls[i] = projectsList[i].demoUrl;
             githubUrls[i] = projectsList[i].githubUrl;
+            teamAddresses[i] = projectsList[i].teamAddress;
         }
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         HackathonVoting(vm.envAddress("VOTING_CONTRACT_ADDRESS")).registerProjects(
-            titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls
+            titles, descriptions, teamNames, categories, imageUrls, demoUrls, githubUrls, teamAddresses
         );
         vm.stopBroadcast();
 
@@ -49,4 +51,5 @@ struct Project {
     string imageUrl;
     string demoUrl;
     string githubUrl;
+    address teamAddress;
 }
