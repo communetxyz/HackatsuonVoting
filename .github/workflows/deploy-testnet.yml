@@ -126,51 +126,17 @@ jobs:
         run: |
           echo "Registering 3 mock projects for testing..."
 
-          # Project 1: AI Chatbot (will get most votes)
+          # Register all 3 projects in a single transaction using registerProjects
           cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,string,string,string,string,address)" \
-            "AI-Powered Code Assistant" \
-            "An intelligent code completion tool using GPT-4 to help developers write better code faster" \
-            "CodeWizards" \
-            "AI" \
-            "https://placeholder.com/ai-assistant.png" \
-            "https://demo.codeassistant.dev" \
-            "https://github.com/codewizards/ai-assistant" \
-            "$TEAM_ADDRESS" \
-            --rpc-url $HOLESKY_RPC_URL \
-            --private-key $PRIVATE_KEY \
-            --json > /dev/null
-
-          sleep 5
-
-          # Project 2: Web3 DeFi
-          cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,string,string,string,string,address)" \
-            "DeFi Yield Optimizer" \
-            "Automatically find and optimize yield farming strategies across multiple DeFi protocols" \
-            "YieldHunters" \
-            "Web3" \
-            "https://placeholder.com/defi-optimizer.png" \
-            "https://demo.yieldhunters.fi" \
-            "https://github.com/yieldhunters/optimizer" \
-            "$TEAM_ADDRESS" \
-            --rpc-url $HOLESKY_RPC_URL \
-            --private-key $PRIVATE_KEY \
-            --json > /dev/null
-
-          sleep 5
-
-          # Project 3: IoT Smart Home
-          cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,string,string,string,string,address)" \
-            "Smart Home Energy Manager" \
-            "IoT-based system that optimizes energy consumption in real-time using ML predictions" \
-            "EcoTech" \
-            "IoT" \
-            "https://placeholder.com/smart-home.png" \
-            "https://demo.ecotechhome.io" \
-            "https://github.com/ecotech/energy-manager" \
-            "$TEAM_ADDRESS" \
+            "registerProjects(string[],string[],string[],string[],string[],string[],string[],address[])" \
+            '["AI-Powered Code Assistant","DeFi Yield Optimizer","Smart Home Energy Manager"]' \
+            '["An intelligent code completion tool using GPT-4 to help developers write better code faster","Automatically find and optimize yield farming strategies across multiple DeFi protocols","IoT-based system that optimizes energy consumption in real-time using ML predictions"]' \
+            '["CodeWizards","YieldHunters","EcoTech"]' \
+            '["AI","Web3","IoT"]' \
+            '["https://placeholder.com/ai-assistant.png","https://placeholder.com/defi-optimizer.png","https://placeholder.com/smart-home.png"]' \
+            '["https://demo.codeassistant.dev","https://demo.yieldhunters.fi","https://demo.ecotechhome.io"]' \
+            '["https://github.com/codewizards/ai-assistant","https://github.com/yieldhunters/optimizer","https://github.com/ecotech/energy-manager"]' \
+            "[\"$TEAM_ADDRESS\",\"$TEAM_ADDRESS\",\"$TEAM_ADDRESS\"]" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
