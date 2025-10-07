@@ -37,6 +37,8 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+          PRIZE_TOKEN_ADDRESS: ${{ secrets.PRIZE_TOKEN_ADDRESS }}
+          PRIZE_AMOUNT: ${{ secrets.PRIZE_AMOUNT }}
         run: |
           echo "Deploying HackathonVoting to Gnosis Chain..."
 

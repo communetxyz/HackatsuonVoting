@@ -7,7 +7,8 @@
       "category": "AI",
       "imageUrl": "https://example.com/image1.png",
       "demoUrl": "https://demo.example.com/project1",
-      "githubUrl": "https://github.com/team-alpha/ai-project"
+      "githubUrl": "https://github.com/team-alpha/ai-project",
+      "teamAddress": "0x1111111111111111111111111111111111111111"
     },
     {
       "title": "Example Web3 Project",
@@ -16,7 +17,8 @@
       "category": "Web3",
       "imageUrl": "https://example.com/image2.png",
       "demoUrl": "https://demo.example.com/project2",
-      "githubUrl": "https://github.com/team-beta/web3-project"
+      "githubUrl": "https://github.com/team-beta/web3-project",
+      "teamAddress": "0x2222222222222222222222222222222222222222"
     }
   ]
 }

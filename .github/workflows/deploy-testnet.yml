@@ -46,6 +46,8 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
           HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
+          PRIZE_TOKEN_ADDRESS: ${{ secrets.PRIZE_TOKEN_ADDRESS }}
+          PRIZE_AMOUNT: ${{ secrets.PRIZE_AMOUNT }}
         run: |
           echo "Deploying HackathonVoting to Holesky testnet..."
 
@@ -88,7 +90,7 @@ jobs:
 
           # Project 1: AI Chatbot
           cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,string,string,string,string)" \
+            "registerProject(string,string,string,string,string,string,string,address)" \
             "AI-Powered Code Assistant" \
             "An intelligent code completion tool using GPT-4 to help developers write better code faster" \
             "CodeWizards" \
@@ -96,6 +98,7 @@ jobs:
             "https://placeholder.com/ai-assistant.png" \
             "https://demo.codeassistant.dev" \
             "https://github.com/codewizards/ai-assistant" \
+            "0x1111111111111111111111111111111111111111" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
@@ -104,7 +107,7 @@ jobs:
 
           # Project 2: Web3 DeFi
           cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,string,string,string,string)" \
+            "registerProject(string,string,string,string,string,string,string,address)" \
             "DeFi Yield Optimizer" \
             "Automatically find and optimize yield farming strategies across multiple DeFi protocols" \
             "YieldHunters" \
@@ -112,6 +115,7 @@ jobs:
             "https://placeholder.com/defi-optimizer.png" \
             "https://demo.yieldhunters.fi" \
             "https://github.com/yieldhunters/optimizer" \
+            "0x2222222222222222222222222222222222222222" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
@@ -120,7 +124,7 @@ jobs:
 
           # Project 3: IoT Smart Home
           cast send ${{ steps.deploy.outputs.contract_address }} \
-            "registerProject(string,string,string,string,string,string,string)" \
+            "registerProject(string,string,string,string,string,string,string,address)" \
             "Smart Home Energy Manager" \
             "IoT-based system that optimizes energy consumption in real-time using ML predictions" \
             "EcoTech" \
@@ -128,6 +132,7 @@ jobs:
             "https://placeholder.com/smart-home.png" \
             "https://demo.ecotechhome.io" \
             "https://github.com/ecotech/energy-manager" \
+            "0x3333333333333333333333333333333333333333" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
@@ -239,7 +244,7 @@ jobs:
             \`\`\`bash
             # Register a project (owner only)
             cast send ${contractAddress} \\
-              "registerProject(string,string,string,string,string,string,string)" \\
+              "registerProject(string,string,string,string,string,string,string,address)" \\
               "Test Project" \\
               "A test project" \\
               "Test Team" \\
@@ -247,6 +252,7 @@ jobs:
               "https://image.url" \\
               "https://demo.url" \\
               "https://github.url" \\
+              "0xYourTeamAddress" \\
               --rpc-url https://1rpc.io/holesky \\
               --private-key $PRIVATE_KEY
 
