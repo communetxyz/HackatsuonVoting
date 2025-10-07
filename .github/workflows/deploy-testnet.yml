@@ -65,10 +65,13 @@ jobs:
 
       - name: Verify contract
         if: ${{ github.event.inputs.verify != 'false' }}
+        continue-on-error: true
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: |
           echo "Verifying HackathonVoting contract on Etherscan..."
+          echo "Waiting 30 seconds for transaction to propagate..."
+          sleep 30
 
           forge verify-contract \
             --chain-id 17000 \
