@@ -44,10 +44,6 @@ jobs:
           echo "prize_token=$PRIZE_TOKEN" >> $GITHUB_OUTPUT
           echo "prize_amount=$PRIZE_AMOUNT" >> $GITHUB_OUTPUT
 
-          echo "Loaded configuration from gnosis-deploy.json:"
-          echo "  Prize Token: $PRIZE_TOKEN"
-          echo "  Prize Amount: $PRIZE_AMOUNT"
-
       - name: Deploy HackathonVoting
         id: deploy
         env:
@@ -56,10 +52,6 @@ jobs:
           PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
           PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
-          echo "Deploying HackathonVoting to Gnosis Chain..."
-          echo "Prize Token: $PRIZE_TOKEN_ADDRESS"
-          echo "Prize Amount: $PRIZE_AMOUNT"
-
           DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
             --rpc-url $GNOSIS_RPC_URL \
             --broadcast \
@@ -75,9 +67,7 @@ jobs:
           echo "Deployed to: $CONTRACT_ADDRESS"
 
       - name: Wait for blockchain indexing
-        run: |
-          echo "Waiting 60 seconds for blockchain indexing..."
-          sleep 60
+        run: sleep 60
 
       - name: Register projects from gnosis-deploy.json
         env:
@@ -85,8 +75,6 @@ jobs:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
           VOTING_CONTRACT_ADDRESS: ${{ steps.deploy.outputs.contract_address }}
         run: |
-          echo "Registering projects from gnosis-deploy.json..."
-
           forge script script/SetupProjects.s.sol:SetupProjectsScript \
             --rpc-url $GNOSIS_RPC_URL \
             --broadcast \
@@ -97,11 +85,8 @@ jobs:
         env:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
         run: |
-          echo "Verifying HackathonVoting contract on Blockscout..."
-
           # Get the exact compiler version metadata from the compiled artifact
           COMPILER_VERSION=$(cat out/HackathonVoting.sol/HackathonVoting.json | jq -r '.metadata.compiler.version')
-          echo "Exact compiler version from artifact: $COMPILER_VERSION"
 
           forge verify-contract \
             ${{ steps.deploy.outputs.contract_address }} \

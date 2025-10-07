@@ -53,10 +53,6 @@ jobs:
           echo "prize_token=$PRIZE_TOKEN" >> $GITHUB_OUTPUT
           echo "prize_amount=$PRIZE_AMOUNT" >> $GITHUB_OUTPUT
 
-          echo "Loaded configuration from holesky-deploy.json:"
-          echo "  Prize Token: $PRIZE_TOKEN"
-          echo "  Prize Amount: $PRIZE_AMOUNT"
-
       - name: Deploy HackathonVoting
         id: deploy
         env:
@@ -65,10 +61,6 @@ jobs:
           PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
           PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
-          echo "Deploying HackathonVoting to Holesky testnet..."
-          echo "Prize Token: $PRIZE_TOKEN_ADDRESS"
-          echo "Prize Amount: $PRIZE_AMOUNT"
-
           DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
             --rpc-url $HOLESKY_RPC_URL \
             --broadcast \
@@ -88,8 +80,7 @@ jobs:
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: |
-          echo "Verifying HackathonVoting contract on Etherscan..."
-          echo "Waiting 30 seconds for transaction to propagate..."
+          echo "Verifying contract on Etherscan..."
           sleep 30
 
           forge verify-contract \
@@ -111,10 +102,7 @@ jobs:
           PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
           PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
-          echo "Waiting for previous transactions to settle..."
           sleep 10
-
-          echo "Transferring $PRIZE_AMOUNT prize tokens to contract..."
 
           # Transfer prize tokens to the contract for prize distribution
           cast send $PRIZE_TOKEN_ADDRESS \
@@ -127,14 +115,6 @@ jobs:
 
           sleep 5
 
-          # Verify contract has the tokens
-          CONTRACT_BALANCE=$(cast call $PRIZE_TOKEN_ADDRESS \
-            "balanceOf(address)(uint256)" \
-            ${{ steps.deploy.outputs.contract_address }} \
-            --rpc-url $HOLESKY_RPC_URL)
-
-          echo "Contract prize token balance: $CONTRACT_BALANCE"
-
       - name: Register test projects and vote
         id: test_projects
         env:
@@ -142,8 +122,6 @@ jobs:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
           TEAM_ADDRESS: "0x86213f1cf0a501857B70Df35c1cb3C2EcF112844"
         run: |
-          echo "Registering 4 mock projects for testing..."
-
           # Register all 4 projects in a single transaction using registerProjects
           # The 4th project won't receive votes, to verify only top 3 get prizes
           CALLDATA=$(cast calldata \
@@ -165,13 +143,6 @@ jobs:
 
           sleep 5
 
-          # Verify project count
-          PROJECT_COUNT=$(cast call ${{ steps.deploy.outputs.contract_address }} \
-            "projectCount()(uint256)" \
-            --rpc-url $HOLESKY_RPC_URL)
-
-          echo "Total projects registered: $PROJECT_COUNT"
-
           # Vote for project 1 (first vote)
           cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
@@ -192,24 +163,12 @@ jobs:
 
           sleep 5
 
-          # Vote for project 3 (third vote from deployer address using a second voter)
-          # Note: This requires a second private key to vote as different address
-          # For now, we'll vote for project 3 from the same address using their 2-vote limit
-          # Actually, we already used both votes (project 1 and 2), so we need to vote from contract owner
-          # Let's just vote for project 3 from a cast send without using up our vote limit
-          # Since we can't easily add a second voter in CI, let's add a third vote for project 3
-          # by voting twice for project 1, once for project 2, and once for project 3 would need 2 addresses
-
-          # Workaround: Create a new random wallet and use it to vote for project 3
-          # Parse cast wallet new output (format: "Successfully created new keypair.\nAddress: 0x...\nPrivate key: 0x...")
+          # Create a new random wallet and use it to vote for project 3
           WALLET_OUTPUT=$(cast wallet new)
           VOTER2_ADDRESS=$(echo "$WALLET_OUTPUT" | grep "Address:" | awk '{print $2}')
           VOTER2_KEY=$(echo "$WALLET_OUTPUT" | grep "Private key:" | awk '{print $3}')
 
-          echo "Generated voter address: $VOTER2_ADDRESS"
-
-          # Fund the new voter with some ETH for gas (using owner account)
-          echo "Funding voter 2 with 0.05 ETH..."
+          # Fund the new voter with some ETH for gas
           cast send $VOTER2_ADDRESS \
             --value 0.05ether \
             --rpc-url $HOLESKY_RPC_URL \
@@ -218,12 +177,7 @@ jobs:
 
           sleep 10
 
-          # Check balance of new voter
-          VOTER2_BALANCE=$(cast balance $VOTER2_ADDRESS --rpc-url $HOLESKY_RPC_URL)
-          echo "Voter 2 balance: $VOTER2_BALANCE"
-
           # Vote for project 3 from second voter
-          echo "Voting for project 3 from second voter..."
           set +e  # Don't exit on error
           VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
@@ -235,8 +189,7 @@ jobs:
           set -e  # Re-enable exit on error
 
           if [ $VOTE_EXIT_CODE -ne 0 ]; then
-            echo "❌ Vote transaction failed with exit code $VOTE_EXIT_CODE"
-            echo "Error output: $VOTE_TX"
+            echo "❌ Vote transaction failed"
             exit 1
           fi
 
@@ -244,12 +197,10 @@ jobs:
 
           if [ "$VOTE_TX_HASH" == "null" ] || [ -z "$VOTE_TX_HASH" ]; then
             echo "❌ Failed to get transaction hash from vote response"
-            echo "Response: $VOTE_TX"
             exit 1
           fi
 
           echo "vote_tx_hash=$VOTE_TX_HASH" >> $GITHUB_OUTPUT
-          echo "Test vote cast for project 3: $VOTE_TX_HASH"
 
           sleep 5
 
@@ -259,19 +210,10 @@ jobs:
             3 \
             --rpc-url $HOLESKY_RPC_URL | sed -n '9p')
 
-          echo "Project 3 vote count: $PROJECT_3_VOTES"
-
           if [ "$PROJECT_3_VOTES" == "0" ]; then
             echo "❌ Project 3 has 0 votes after voting!"
             exit 1
           fi
-
-          # Get total votes to verify
-          TOTAL_VOTES=$(cast call ${{ steps.deploy.outputs.contract_address }} \
-            "getTotalVotes()(uint256)" \
-            --rpc-url $HOLESKY_RPC_URL)
-
-          echo "Total votes: $TOTAL_VOTES (expected: 3)"
 
       - name: Resolve voting and verify prize distribution
         id: resolve_voting
@@ -281,15 +223,11 @@ jobs:
           PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
           TEAM_ADDRESS: "0x86213f1cf0a501857B70Df35c1cb3C2EcF112844"
         run: |
-          echo "Getting team balance before resolving..."
           BALANCE_BEFORE=$(cast call $PRIZE_TOKEN_ADDRESS \
             "balanceOf(address)(uint256)" \
             $TEAM_ADDRESS \
             --rpc-url $HOLESKY_RPC_URL)
 
-          echo "Team balance before: $BALANCE_BEFORE"
-
-          echo "Resolving voting and distributing prizes..."
           RESOLVE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "resolveVoting()" \
             --rpc-url $HOLESKY_RPC_URL \
@@ -298,38 +236,22 @@ jobs:
 
           RESOLVE_TX_HASH=$(echo $RESOLVE_TX | jq -r '.transactionHash')
           echo "resolve_tx_hash=$RESOLVE_TX_HASH" >> $GITHUB_OUTPUT
-          echo "Voting resolved: $RESOLVE_TX_HASH"
 
           sleep 5
 
-          # Get winner
-          WINNER_ID=$(cast call ${{ steps.deploy.outputs.contract_address }} \
-            "winnerProjectId()(uint256)" \
-            --rpc-url $HOLESKY_RPC_URL)
-
-          echo "Winner project ID: $WINNER_ID"
-
-          # Get team balance after resolution
           BALANCE_AFTER=$(cast call $PRIZE_TOKEN_ADDRESS \
             "balanceOf(address)(uint256)" \
             $TEAM_ADDRESS \
             --rpc-url $HOLESKY_RPC_URL)
 
-          echo "Team balance after: $BALANCE_AFTER"
-
           # Calculate expected prize (3 / 3 = 1 token per winner, all 3 projects received votes)
-          # All 3 projects have votes, so all 3 get prizes (1 token each = 3 total)
-          # All projects have same team address, so team should receive 3 tokens total
           EXPECTED_PRIZE=3
           ACTUAL_PRIZE=$((BALANCE_AFTER - BALANCE_BEFORE))
-
-          echo "Expected prize distributed: $EXPECTED_PRIZE"
-          echo "Actual prize distributed: $ACTUAL_PRIZE"
 
           if [ "$ACTUAL_PRIZE" -eq "$EXPECTED_PRIZE" ]; then
             echo "✅ Prize distribution verified successfully!"
           else
-            echo "❌ Prize distribution mismatch!"
+            echo "❌ Prize distribution mismatch! Expected: $EXPECTED_PRIZE, Actual: $ACTUAL_PRIZE"
             exit 1
           fi
 
