@@ -178,15 +178,13 @@ jobs:
           sleep 10
 
           # Vote for project 3 from second voter
-          set +e  # Don't exit on error
           VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
             3 \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $VOTER2_KEY \
-            --json 2>&1)
-          VOTE_EXIT_CODE=$?
-          set -e  # Re-enable exit on error
+            --json 2>&1) || VOTE_EXIT_CODE=$?
+          VOTE_EXIT_CODE=${VOTE_EXIT_CODE:-0}
 
           if [ $VOTE_EXIT_CODE -ne 0 ]; then
             echo "❌ Vote transaction failed"
