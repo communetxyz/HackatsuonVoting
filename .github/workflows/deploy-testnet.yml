@@ -90,15 +90,43 @@ jobs:
             src/HackathonVoting.sol:HackathonVoting \
             --etherscan-api-key $ETHERSCAN_API_KEY
 
+      - name: Fund contract with prize tokens
+        env:
+          HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIZE_TOKEN_ADDRESS: "0x3f1c547b21f65e10480de3ad8e19faac46c95034"
+        run: |
+          echo "Transferring prize tokens to contract..."
+
+          # Transfer 3 tokens to the contract for prize distribution
+          cast send $PRIZE_TOKEN_ADDRESS \
+            "transfer(address,uint256)" \
+            ${{ steps.deploy.outputs.contract_address }} \
+            3 \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json > /dev/null
+
+          sleep 5
+
+          # Verify contract has the tokens
+          CONTRACT_BALANCE=$(cast call $PRIZE_TOKEN_ADDRESS \
+            "balanceOf(address)(uint256)" \
+            ${{ steps.deploy.outputs.contract_address }} \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Contract prize token balance: $CONTRACT_BALANCE"
+
       - name: Register test projects and vote
         id: test_projects
         env:
           HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          TEAM_ADDRESS: "0x86213f1cf0a501857B70Df35c1cb3C2EcF112844"
         run: |
           echo "Registering 3 mock projects for testing..."
 
-          # Project 1: AI Chatbot
+          # Project 1: AI Chatbot (will get most votes)
           cast send ${{ steps.deploy.outputs.contract_address }} \
             "registerProject(string,string,string,string,string,string,string,address)" \
             "AI-Powered Code Assistant" \
@@ -108,7 +136,7 @@ jobs:
             "https://placeholder.com/ai-assistant.png" \
             "https://demo.codeassistant.dev" \
             "https://github.com/codewizards/ai-assistant" \
-            "0x1111111111111111111111111111111111111111" \
+            "$TEAM_ADDRESS" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
@@ -125,7 +153,7 @@ jobs:
             "https://placeholder.com/defi-optimizer.png" \
             "https://demo.yieldhunters.fi" \
             "https://github.com/yieldhunters/optimizer" \
-            "0x2222222222222222222222222222222222222222" \
+            "$TEAM_ADDRESS" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
@@ -142,7 +170,7 @@ jobs:
             "https://placeholder.com/smart-home.png" \
             "https://demo.ecotechhome.io" \
             "https://github.com/ecotech/energy-manager" \
-            "0x3333333333333333333333333333333333333333" \
+            "$TEAM_ADDRESS" \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
@@ -156,7 +184,17 @@ jobs:
 
           echo "Total projects registered: $PROJECT_COUNT"
 
-          # Cast a test vote for project 1
+          # Vote for project 1 (first vote)
+          cast send ${{ steps.deploy.outputs.contract_address }} \
+            "vote(uint256)" \
+            1 \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json > /dev/null
+
+          sleep 5
+
+          # Vote for project 1 again (second vote from same address)
           VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
             1 \
@@ -177,6 +215,65 @@ jobs:
 
           echo "Total votes: $TOTAL_VOTES"
 
+      - name: Resolve voting and verify prize distribution
+        id: resolve_voting
+        env:
+          HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
+          PRIZE_TOKEN_ADDRESS: "0x3f1c547b21f65e10480de3ad8e19faac46c95034"
+          TEAM_ADDRESS: "0x86213f1cf0a501857B70Df35c1cb3C2EcF112844"
+        run: |
+          echo "Getting team balance before resolving..."
+          BALANCE_BEFORE=$(cast call $PRIZE_TOKEN_ADDRESS \
+            "balanceOf(address)(uint256)" \
+            $TEAM_ADDRESS \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Team balance before: $BALANCE_BEFORE"
+
+          echo "Resolving voting and distributing prizes..."
+          RESOLVE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
+            "resolveVoting()" \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json)
+
+          RESOLVE_TX_HASH=$(echo $RESOLVE_TX | jq -r '.transactionHash')
+          echo "resolve_tx_hash=$RESOLVE_TX_HASH" >> $GITHUB_OUTPUT
+          echo "Voting resolved: $RESOLVE_TX_HASH"
+
+          sleep 5
+
+          # Get winner
+          WINNER_ID=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+            "winnerId()(uint256)" \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Winner project ID: $WINNER_ID"
+
+          # Get team balance after resolution
+          BALANCE_AFTER=$(cast call $PRIZE_TOKEN_ADDRESS \
+            "balanceOf(address)(uint256)" \
+            $TEAM_ADDRESS \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Team balance after: $BALANCE_AFTER"
+
+          # Calculate expected prize (3 / 3 = 1 token per winner, all 3 projects get 1)
+          # Since all projects have same team address, team should receive 3 tokens total
+          EXPECTED_PRIZE=3
+          ACTUAL_PRIZE=$((BALANCE_AFTER - BALANCE_BEFORE))
+
+          echo "Expected prize distributed: $EXPECTED_PRIZE"
+          echo "Actual prize distributed: $ACTUAL_PRIZE"
+
+          if [ "$ACTUAL_PRIZE" -eq "$EXPECTED_PRIZE" ]; then
+            echo "✅ Prize distribution verified successfully!"
+          else
+            echo "❌ Prize distribution mismatch!"
+            exit 1
+          fi
+
       - name: Create deployment summary
         run: |
           echo "## 🚀 Holesky Testnet Deployment" >> $GITHUB_STEP_SUMMARY
@@ -196,9 +293,11 @@ jobs:
           echo "2. **DeFi Yield Optimizer** (Web3) - by YieldHunters" >> $GITHUB_STEP_SUMMARY
           echo "3. **Smart Home Energy Manager** (IoT) - by EcoTech" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Test Vote" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Vote Transaction: [\`${{ steps.test_projects.outputs.vote_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.test_projects.outputs.vote_tx_hash }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Vote Transaction:** [\`${{ steps.test_projects.outputs.vote_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.test_projects.outputs.vote_tx_hash }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Resolve Transaction:** [\`${{ steps.resolve_voting.outputs.resolve_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.resolve_voting.outputs.resolve_tx_hash }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prize Distribution:** ✅ Verified (3 tokens distributed to top 3 winners)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
 
