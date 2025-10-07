@@ -96,6 +96,7 @@ jobs:
             --compiler-version "v${COMPILER_VERSION}" \
             --num-of-optimizations 200 \
             --evm-version paris \
+            --flatten \
             --constructor-args $(cast abi-encode "constructor(address,uint256)" "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d" "3") \
             --verifier blockscout \
             --verifier-url https://gnosis.blockscout.com/api \
