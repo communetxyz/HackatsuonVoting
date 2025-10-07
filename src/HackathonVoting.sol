@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IHackathonVoting.sol";
 
 /**
@@ -11,6 +12,8 @@ import "./IHackathonVoting.sol";
  * @dev Implements a voting system where each address can vote for up to 2 different projects
  */
 contract HackathonVoting is IHackathonVoting, Ownable {
+    using SafeERC20 for IERC20;
+
     // ============ State Variables ============
 
     bool public override votingResolved;
@@ -181,7 +184,7 @@ contract HackathonVoting is IHackathonVoting, Ownable {
                 // Transfer prize to project's team address
                 address teamAddress = projects[topProjectIds[i]].teamAddress;
                 if (teamAddress != address(0)) {
-                    prizeToken.transfer(teamAddress, prizePerWinner);
+                    prizeToken.safeTransfer(teamAddress, prizePerWinner);
                 }
             }
         }
