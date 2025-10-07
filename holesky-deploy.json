@@ -1,0 +1,28 @@
+{
+  "network": "holesky",
+  "chainId": 17000,
+  "prizeToken": "0x3f1c547b21f65e10480de3ad8e19faac46c95034",
+  "prizeAmount": "3",
+  "projects": [
+    {
+      "title": "Example AI Project",
+      "description": "An AI-powered solution for hackathons",
+      "teamName": "Team Alpha",
+      "category": "AI",
+      "imageUrl": "https://example.com/image1.png",
+      "demoUrl": "https://demo.example.com/project1",
+      "githubUrl": "https://github.com/team-alpha/ai-project",
+      "teamAddress": "0x1111111111111111111111111111111111111111"
+    },
+    {
+      "title": "Example Web3 Project",
+      "description": "A decentralized application",
+      "teamName": "Team Beta",
+      "category": "Web3",
+      "imageUrl": "https://example.com/image2.png",
+      "demoUrl": "https://demo.example.com/project2",
+      "githubUrl": "https://github.com/team-beta/web3-project",
+      "teamAddress": "0x2222222222222222222222222222222222222222"
+    }
+  ]
+}
