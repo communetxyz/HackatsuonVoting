@@ -46,10 +46,12 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
           HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
-          PRIZE_TOKEN_ADDRESS: ${{ secrets.PRIZE_TOKEN_ADDRESS }}
-          PRIZE_AMOUNT: ${{ secrets.PRIZE_AMOUNT }}
+          PRIZE_TOKEN_ADDRESS: "0x3f1c547b21f65e10480de3ad8e19faac46c95034"
+          PRIZE_AMOUNT: "3"
         run: |
           echo "Deploying HackathonVoting to Holesky testnet..."
+          echo "Prize Token: $PRIZE_TOKEN_ADDRESS"
+          echo "Prize Amount: $PRIZE_AMOUNT"
 
           DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
             --rpc-url $HOLESKY_RPC_URL \

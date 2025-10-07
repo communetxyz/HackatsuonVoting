@@ -37,10 +37,12 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
-          PRIZE_TOKEN_ADDRESS: ${{ secrets.PRIZE_TOKEN_ADDRESS }}
-          PRIZE_AMOUNT: ${{ secrets.PRIZE_AMOUNT }}
+          PRIZE_TOKEN_ADDRESS: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+          PRIZE_AMOUNT: "3"
         run: |
           echo "Deploying HackathonVoting to Gnosis Chain..."
+          echo "Prize Token: $PRIZE_TOKEN_ADDRESS"
+          echo "Prize Amount: $PRIZE_AMOUNT"
 
           DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
             --rpc-url $GNOSIS_RPC_URL \
