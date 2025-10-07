@@ -547,4 +547,266 @@ contract HackathonVotingTest is Test {
         // Winner should be project 2
         assertEq(voting.winnerProjectId(), 2);
     }
+
+    // ============ Fuzz Tests ============
+
+    function testFuzz_VotingWithRandomVoters(uint8 numVoters, uint8 projectChoice) public {
+        // Bound inputs to reasonable ranges
+        numVoters = uint8(bound(numVoters, 1, 100));
+
+        // Register 3 test projects
+        voting.registerProject(
+            "Project 1",
+            "Description 1",
+            "Team 1",
+            "AI",
+            "https://example.com/1.png",
+            "https://demo1.com",
+            "https://github.com/team1",
+            team1
+        );
+        voting.registerProject(
+            "Project 2",
+            "Description 2",
+            "Team 2",
+            "Web3",
+            "https://example.com/2.png",
+            "https://demo2.com",
+            "https://github.com/team2",
+            team2
+        );
+        voting.registerProject(
+            "Project 3",
+            "Description 3",
+            "Team 3",
+            "IoT",
+            "https://example.com/3.png",
+            "https://demo3.com",
+            "https://github.com/team3",
+            team3
+        );
+
+        // Bound project choice to 1-3
+        uint256 chosenProject = bound(projectChoice, 1, 3);
+        // Second project is different from first
+        uint256 secondProject = chosenProject == 3 ? 1 : chosenProject + 1;
+
+        // Generate random voters and have them vote
+        uint256 totalVotes = 0;
+        for (uint256 i = 0; i < numVoters; i++) {
+            address voter = address(uint160(uint256(keccak256(abi.encodePacked("voter", i)))));
+            vm.prank(voter);
+
+            // Each voter votes for first project
+            voting.vote(chosenProject);
+            totalVotes++;
+
+            // Second vote for different project
+            vm.prank(voter);
+            voting.vote(secondProject);
+            totalVotes++;
+        }
+
+        // Verify total votes
+        assertEq(voting.getTotalVotes(), totalVotes, "Total votes should match");
+
+        // Get project info and verify vote counts
+        IHackathonVoting.Project memory project1 = voting.getProject(chosenProject);
+        IHackathonVoting.Project memory project2 = voting.getProject(secondProject);
+        assertEq(project1.voteCount, numVoters, "First project should have numVoters votes");
+        assertEq(project2.voteCount, numVoters, "Second project should have numVoters votes");
+    }
+
+    function testFuzz_ResolveVotingWithRandomDistribution(
+        uint8 votes1,
+        uint8 votes2,
+        uint8 votes3
+    ) public {
+        // Bound to reasonable ranges
+        votes1 = uint8(bound(votes1, 0, 50));
+        votes2 = uint8(bound(votes2, 0, 50));
+        votes3 = uint8(bound(votes3, 0, 50));
+
+        // Need at least one vote
+        vm.assume(votes1 + votes2 + votes3 > 0);
+
+        // Register 3 projects
+        voting.registerProject(
+            "Project 1", "Description 1", "Team 1", "AI",
+            "https://example.com/1.png", "https://demo1.com",
+            "https://github.com/team1", team1
+        );
+        voting.registerProject(
+            "Project 2", "Description 2", "Team 2", "Web3",
+            "https://example.com/2.png", "https://demo2.com",
+            "https://github.com/team2", team2
+        );
+        voting.registerProject(
+            "Project 3", "Description 3", "Team 3", "IoT",
+            "https://example.com/3.png", "https://demo3.com",
+            "https://github.com/team3", team3
+        );
+
+        // Cast votes for each project
+        for (uint256 i = 0; i < votes1; i++) {
+            address voter = address(uint160(uint256(keccak256(abi.encodePacked("voter1", i)))));
+            vm.prank(voter);
+            voting.vote(1);
+        }
+        for (uint256 i = 0; i < votes2; i++) {
+            address voter = address(uint160(uint256(keccak256(abi.encodePacked("voter2", i)))));
+            vm.prank(voter);
+            voting.vote(2);
+        }
+        for (uint256 i = 0; i < votes3; i++) {
+            address voter = address(uint160(uint256(keccak256(abi.encodePacked("voter3", i)))));
+            vm.prank(voter);
+            voting.vote(3);
+        }
+
+        // Resolve voting
+        voting.resolveVoting();
+
+        // Determine expected winner (project with most votes)
+        uint256 expectedWinner;
+        if (votes1 >= votes2 && votes1 >= votes3) {
+            expectedWinner = 1;
+        } else if (votes2 >= votes3) {
+            expectedWinner = 2;
+        } else {
+            expectedWinner = 3;
+        }
+
+        assertEq(voting.winnerProjectId(), expectedWinner, "Winner should be project with most votes");
+
+        // Verify prize distribution
+        uint256 prizePerWinner = PRIZE_AMOUNT / 3;
+
+        // Count how many projects have votes
+        uint256 projectsWithVotes = 0;
+        if (votes1 > 0) projectsWithVotes++;
+        if (votes2 > 0) projectsWithVotes++;
+        if (votes3 > 0) projectsWithVotes++;
+
+        // At least top 1 should get prize if they have votes
+        if (votes1 > 0 || votes2 > 0 || votes3 > 0) {
+            uint256 totalPrizesDistributed = prizeToken.balanceOf(team1) +
+                                            prizeToken.balanceOf(team2) +
+                                            prizeToken.balanceOf(team3);
+
+            // Total prizes should be (min of 3 or projectsWithVotes) * prizePerWinner
+            uint256 expectedPrizes = (projectsWithVotes < 3 ? projectsWithVotes : 3) * prizePerWinner;
+            assertEq(totalPrizesDistributed, expectedPrizes, "Total prizes distributed should match expected");
+        }
+    }
+
+    function testFuzz_PrizeDistributionToTop3Only(
+        uint8 numProjects,
+        uint8 voteSeed
+    ) public {
+        // Bound to 4-10 projects to ensure we have more than 3
+        numProjects = uint8(bound(numProjects, 4, 10));
+
+        // Register projects
+        address[] memory teams = new address[](numProjects);
+        for (uint256 i = 0; i < numProjects; i++) {
+            teams[i] = address(uint160(uint256(keccak256(abi.encodePacked("team", i)))));
+            voting.registerProject(
+                string(abi.encodePacked("Project ", vm.toString(i + 1))),
+                "Description",
+                string(abi.encodePacked("Team ", vm.toString(i + 1))),
+                "Category",
+                "https://example.com/img.png",
+                "https://demo.com",
+                "https://github.com/team",
+                teams[i]
+            );
+        }
+
+        // Cast votes with decreasing amounts (to ensure clear top 3)
+        for (uint256 i = 0; i < numProjects; i++) {
+            // Project i+1 gets (numProjects - i) votes
+            uint256 votesForProject = numProjects - i + uint256(voteSeed) % 3;
+
+            for (uint256 j = 0; j < votesForProject; j++) {
+                address voter = address(uint160(uint256(keccak256(abi.encodePacked("voter", i, j)))));
+                vm.prank(voter);
+                voting.vote(i + 1);
+            }
+        }
+
+        // Resolve voting
+        voting.resolveVoting();
+
+        // Only top 3 should have received prizes
+        uint256 prizePerWinner = PRIZE_AMOUNT / 3;
+        uint256 projectsWithPrizes = 0;
+
+        for (uint256 i = 0; i < numProjects; i++) {
+            if (prizeToken.balanceOf(teams[i]) > 0) {
+                projectsWithPrizes++;
+                assertEq(prizeToken.balanceOf(teams[i]), prizePerWinner, "Prize amount should be correct");
+            }
+        }
+
+        // Exactly 3 projects should receive prizes (or less if fewer have votes)
+        assertLe(projectsWithPrizes, 3, "No more than 3 projects should receive prizes");
+        assertEq(projectsWithPrizes, 3, "Exactly 3 projects should receive prizes");
+    }
+
+    function testFuzz_CannotVoteForNonexistentProject(uint256 projectId) public {
+        // Register 2 projects
+        voting.registerProject(
+            "Project 1", "Desc", "Team", "Cat",
+            "img", "demo", "github", team1
+        );
+        voting.registerProject(
+            "Project 2", "Desc", "Team", "Cat",
+            "img", "demo", "github", team2
+        );
+
+        // Assume projectId is not 1 or 2
+        vm.assume(projectId != 1 && projectId != 2);
+
+        vm.prank(voter1);
+        vm.expectRevert(IHackathonVoting.ProjectNotFound.selector);
+        voting.vote(projectId);
+    }
+
+    function testFuzz_VoterCanVoteTwiceForDifferentProjects(
+        uint8 project1,
+        uint8 project2
+    ) public {
+        // Register 5 projects
+        for (uint256 i = 1; i <= 5; i++) {
+            voting.registerProject(
+                string(abi.encodePacked("Project ", vm.toString(i))),
+                "Description",
+                "Team",
+                "Category",
+                "https://example.com/img.png",
+                "https://demo.com",
+                "https://github.com/team",
+                address(uint160(i))
+            );
+        }
+
+        // Bound to valid projects
+        project1 = uint8(bound(project1, 1, 5));
+        project2 = uint8(bound(project2, 1, 5));
+
+        // Assume they're different
+        vm.assume(project1 != project2);
+
+        // Voter should be able to vote for two different projects
+        vm.prank(voter1);
+        voting.vote(project1);
+
+        vm.prank(voter1);
+        voting.vote(project2);
+
+        // Verify votes were recorded
+        assertEq(voting.getProject(project1).voteCount, 1);
+        assertEq(voting.getProject(project2).voteCount, 1);
+    }
 }
