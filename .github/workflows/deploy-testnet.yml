@@ -185,10 +185,12 @@ jobs:
           # by voting twice for project 1, once for project 2, and once for project 3 would need 2 addresses
 
           # Workaround: Create a new random wallet and use it to vote for project 3
-          # cast wallet new outputs: ["private_key", "address"]
-          WALLET_OUTPUT=$(cast wallet new --json)
-          VOTER2_KEY=$(echo "$WALLET_OUTPUT" | jq -r '.[0]')
-          VOTER2_ADDRESS=$(echo "$WALLET_OUTPUT" | jq -r '.[1]')
+          # Parse cast wallet new output (format: "Successfully created new keypair.\nAddress: 0x...\nPrivate key: 0x...")
+          WALLET_OUTPUT=$(cast wallet new)
+          VOTER2_ADDRESS=$(echo "$WALLET_OUTPUT" | grep "Address:" | awk '{print $2}')
+          VOTER2_KEY=$(echo "$WALLET_OUTPUT" | grep "Private key:" | awk '{print $3}')
+
+          echo "Generated voter address: $VOTER2_ADDRESS"
 
           # Fund the new voter with some ETH for gas (using owner account)
           cast send $VOTER2_ADDRESS \
