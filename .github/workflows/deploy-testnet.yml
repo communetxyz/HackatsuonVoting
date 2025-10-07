@@ -209,25 +209,54 @@ jobs:
 
           # Vote for project 3 from second voter
           echo "Voting for project 3 from second voter..."
+          set +e  # Don't exit on error
           VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
             3 \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $VOTER2_KEY \
-            --json)
+            --json 2>&1)
+          VOTE_EXIT_CODE=$?
+          set -e  # Re-enable exit on error
+
+          if [ $VOTE_EXIT_CODE -ne 0 ]; then
+            echo "❌ Vote transaction failed with exit code $VOTE_EXIT_CODE"
+            echo "Error output: $VOTE_TX"
+            exit 1
+          fi
 
           VOTE_TX_HASH=$(echo $VOTE_TX | jq -r '.transactionHash')
+
+          if [ "$VOTE_TX_HASH" == "null" ] || [ -z "$VOTE_TX_HASH" ]; then
+            echo "❌ Failed to get transaction hash from vote response"
+            echo "Response: $VOTE_TX"
+            exit 1
+          fi
+
           echo "vote_tx_hash=$VOTE_TX_HASH" >> $GITHUB_OUTPUT
           echo "Test vote cast for project 3: $VOTE_TX_HASH"
 
           sleep 5
+
+          # Verify the vote was actually recorded
+          PROJECT_3_VOTES=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+            "projects(uint256)(uint256,string,string,string,string,string,string,string,uint256,address)" \
+            3 \
+            --rpc-url $HOLESKY_RPC_URL | sed -n '9p')
+
+          echo "Project 3 vote count: $PROJECT_3_VOTES"
+
+          if [ "$PROJECT_3_VOTES" == "0" ]; then
+            echo "❌ Project 3 has 0 votes after voting!"
+            exit 1
+          fi
 
           # Get total votes to verify
           TOTAL_VOTES=$(cast call ${{ steps.deploy.outputs.contract_address }} \
             "getTotalVotes()(uint256)" \
             --rpc-url $HOLESKY_RPC_URL)
 
-          echo "Total votes: $TOTAL_VOTES"
+          echo "Total votes: $TOTAL_VOTES (expected: 3)"
 
       - name: Resolve voting and verify prize distribution
         id: resolve_voting
