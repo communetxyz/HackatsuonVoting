@@ -193,15 +193,21 @@ jobs:
           echo "Generated voter address: $VOTER2_ADDRESS"
 
           # Fund the new voter with some ETH for gas (using owner account)
+          echo "Funding voter 2 with 0.05 ETH..."
           cast send $VOTER2_ADDRESS \
-            --value 0.01ether \
+            --value 0.05ether \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
 
-          sleep 5
+          sleep 10
+
+          # Check balance of new voter
+          VOTER2_BALANCE=$(cast balance $VOTER2_ADDRESS --rpc-url $HOLESKY_RPC_URL)
+          echo "Voter 2 balance: $VOTER2_BALANCE"
 
           # Vote for project 3 from second voter
+          echo "Voting for project 3 from second voter..."
           VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
             3 \
@@ -211,7 +217,7 @@ jobs:
 
           VOTE_TX_HASH=$(echo $VOTE_TX | jq -r '.transactionHash')
           echo "vote_tx_hash=$VOTE_TX_HASH" >> $GITHUB_OUTPUT
-          echo "Test vote cast: $VOTE_TX_HASH"
+          echo "Test vote cast for project 3: $VOTE_TX_HASH"
 
           sleep 5
 
