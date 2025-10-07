@@ -83,7 +83,7 @@ jobs:
             --compiler-version v0.8.20 \
             --num-of-optimizations 200 \
             --evm-version paris \
-            --flatten \
+            --skip-is-verified-check \
             --watch \
             --constructor-args $(cast abi-encode "constructor(address,uint256)" "0x3f1c547b21f65e10480de3ad8e19faac46c95034" "3") \
             ${{ steps.deploy.outputs.contract_address }} \
