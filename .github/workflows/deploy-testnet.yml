@@ -231,9 +231,10 @@ jobs:
 
           echo "Team balance after: $BALANCE_AFTER"
 
-          # Calculate expected prize (3 / 3 = 1 token per winner, all 3 projects get 1)
-          # Since all projects have same team address, team should receive 3 tokens total
-          EXPECTED_PRIZE=3
+          # Calculate expected prize (3 / 3 = 1 token per winner, 2 projects received votes)
+          # Since only 2 projects have votes, only 2 get prizes (1 token each = 2 total)
+          # All projects have same team address, so team should receive 2 tokens total
+          EXPECTED_PRIZE=2
           ACTUAL_PRIZE=$((BALANCE_AFTER - BALANCE_BEFORE))
 
           echo "Expected prize distributed: $EXPECTED_PRIZE"
