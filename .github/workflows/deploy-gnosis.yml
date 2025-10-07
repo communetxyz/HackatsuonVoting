@@ -30,7 +30,9 @@ jobs:
         run: forge install
 
       - name: Build contracts
-        run: forge build
+        run: |
+          forge clean
+          forge build
 
       - name: Deploy HackathonVoting
         id: deploy
