@@ -617,11 +617,7 @@ contract HackathonVotingTest is Test {
         assertEq(project2.voteCount, numVoters, "Second project should have numVoters votes");
     }
 
-    function testFuzz_ResolveVotingWithRandomDistribution(
-        uint8 votes1,
-        uint8 votes2,
-        uint8 votes3
-    ) public {
+    function testFuzz_ResolveVotingWithRandomDistribution(uint8 votes1, uint8 votes2, uint8 votes3) public {
         // Bound to reasonable ranges
         votes1 = uint8(bound(votes1, 0, 50));
         votes2 = uint8(bound(votes2, 0, 50));
@@ -632,19 +628,34 @@ contract HackathonVotingTest is Test {
 
         // Register 3 projects
         voting.registerProject(
-            "Project 1", "Description 1", "Team 1", "AI",
-            "https://example.com/1.png", "https://demo1.com",
-            "https://github.com/team1", team1
+            "Project 1",
+            "Description 1",
+            "Team 1",
+            "AI",
+            "https://example.com/1.png",
+            "https://demo1.com",
+            "https://github.com/team1",
+            team1
         );
         voting.registerProject(
-            "Project 2", "Description 2", "Team 2", "Web3",
-            "https://example.com/2.png", "https://demo2.com",
-            "https://github.com/team2", team2
+            "Project 2",
+            "Description 2",
+            "Team 2",
+            "Web3",
+            "https://example.com/2.png",
+            "https://demo2.com",
+            "https://github.com/team2",
+            team2
         );
         voting.registerProject(
-            "Project 3", "Description 3", "Team 3", "IoT",
-            "https://example.com/3.png", "https://demo3.com",
-            "https://github.com/team3", team3
+            "Project 3",
+            "Description 3",
+            "Team 3",
+            "IoT",
+            "https://example.com/3.png",
+            "https://demo3.com",
+            "https://github.com/team3",
+            team3
         );
 
         // Cast votes for each project
@@ -690,9 +701,8 @@ contract HackathonVotingTest is Test {
 
         // At least top 1 should get prize if they have votes
         if (votes1 > 0 || votes2 > 0 || votes3 > 0) {
-            uint256 totalPrizesDistributed = prizeToken.balanceOf(team1) +
-                                            prizeToken.balanceOf(team2) +
-                                            prizeToken.balanceOf(team3);
+            uint256 totalPrizesDistributed =
+                prizeToken.balanceOf(team1) + prizeToken.balanceOf(team2) + prizeToken.balanceOf(team3);
 
             // Total prizes should be (min of 3 or projectsWithVotes) * prizePerWinner
             uint256 expectedPrizes = (projectsWithVotes < 3 ? projectsWithVotes : 3) * prizePerWinner;
@@ -700,10 +710,7 @@ contract HackathonVotingTest is Test {
         }
     }
 
-    function testFuzz_PrizeDistributionToTop3Only(
-        uint8 numProjects,
-        uint8 voteSeed
-    ) public {
+    function testFuzz_PrizeDistributionToTop3Only(uint8 numProjects, uint8 voteSeed) public {
         // Bound to 4-10 projects to ensure we have more than 3
         numProjects = uint8(bound(numProjects, 4, 10));
 
@@ -756,14 +763,8 @@ contract HackathonVotingTest is Test {
 
     function testFuzz_CannotVoteForNonexistentProject(uint256 projectId) public {
         // Register 2 projects
-        voting.registerProject(
-            "Project 1", "Desc", "Team", "Cat",
-            "img", "demo", "github", team1
-        );
-        voting.registerProject(
-            "Project 2", "Desc", "Team", "Cat",
-            "img", "demo", "github", team2
-        );
+        voting.registerProject("Project 1", "Desc", "Team", "Cat", "img", "demo", "github", team1);
+        voting.registerProject("Project 2", "Desc", "Team", "Cat", "img", "demo", "github", team2);
 
         // Assume projectId is not 1 or 2
         vm.assume(projectId != 1 && projectId != 2);
@@ -773,10 +774,7 @@ contract HackathonVotingTest is Test {
         voting.vote(projectId);
     }
 
-    function testFuzz_VoterCanVoteTwiceForDifferentProjects(
-        uint8 project1,
-        uint8 project2
-    ) public {
+    function testFuzz_VoterCanVoteTwiceForDifferentProjects(uint8 project1, uint8 project2) public {
         // Register 5 projects
         for (uint256 i = 1; i <= 5; i++) {
             voting.registerProject(
