@@ -76,7 +76,7 @@ jobs:
             --watch \
             ${{ steps.deploy.outputs.contract_address }} \
             src/HackathonVoting.sol:HackathonVoting \
-            --etherscan-api-key $ETHERSCAN_API_KEY || echo "Verification failed or contract already verified"
+            --etherscan-api-key $ETHERSCAN_API_KEY
 
       - name: Register test projects and vote
         id: test_projects
