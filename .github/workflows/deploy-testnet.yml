@@ -167,11 +167,41 @@ jobs:
           sleep 5
 
           # Vote for project 2 (second vote from same address)
-          VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
+          cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
             2 \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
+            --json > /dev/null
+
+          sleep 5
+
+          # Vote for project 3 (third vote from deployer address using a second voter)
+          # Note: This requires a second private key to vote as different address
+          # For now, we'll vote for project 3 from the same address using their 2-vote limit
+          # Actually, we already used both votes (project 1 and 2), so we need to vote from contract owner
+          # Let's just vote for project 3 from a cast send without using up our vote limit
+          # Since we can't easily add a second voter in CI, let's add a third vote for project 3
+          # by voting twice for project 1, once for project 2, and once for project 3 would need 2 addresses
+
+          # Workaround: Create a new random wallet and use it to vote for project 3
+          VOTER2_KEY=$(cast wallet new --json | jq -r '.private_key')
+
+          # Fund the new voter with some ETH for gas (using owner account)
+          cast send $(cast wallet address --private-key $VOTER2_KEY) \
+            --value 0.01ether \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $PRIVATE_KEY \
+            --json > /dev/null
+
+          sleep 5
+
+          # Vote for project 3 from second voter
+          VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
+            "vote(uint256)" \
+            3 \
+            --rpc-url $HOLESKY_RPC_URL \
+            --private-key $VOTER2_KEY \
             --json)
 
           VOTE_TX_HASH=$(echo $VOTE_TX | jq -r '.transactionHash')
@@ -231,10 +261,10 @@ jobs:
 
           echo "Team balance after: $BALANCE_AFTER"
 
-          # Calculate expected prize (3 / 3 = 1 token per winner, 2 projects received votes)
-          # Since only 2 projects have votes, only 2 get prizes (1 token each = 2 total)
-          # All projects have same team address, so team should receive 2 tokens total
-          EXPECTED_PRIZE=2
+          # Calculate expected prize (3 / 3 = 1 token per winner, all 3 projects received votes)
+          # All 3 projects have votes, so all 3 get prizes (1 token each = 3 total)
+          # All projects have same team address, so team should receive 3 tokens total
+          EXPECTED_PRIZE=3
           ACTUAL_PRIZE=$((BALANCE_AFTER - BALANCE_BEFORE))
 
           echo "Expected prize distributed: $EXPECTED_PRIZE"
@@ -262,15 +292,15 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Projects Registered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. **AI-Powered Code Assistant** (AI) - by CodeWizards" >> $GITHUB_STEP_SUMMARY
-          echo "2. **DeFi Yield Optimizer** (Web3) - by YieldHunters" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Smart Home Energy Manager** (IoT) - by EcoTech" >> $GITHUB_STEP_SUMMARY
+          echo "1. **AI-Powered Code Assistant** (AI) - by CodeWizards (1 vote)" >> $GITHUB_STEP_SUMMARY
+          echo "2. **DeFi Yield Optimizer** (Web3) - by YieldHunters (1 vote)" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Smart Home Energy Manager** (IoT) - by EcoTech (1 vote)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Vote Transaction:** [\`${{ steps.test_projects.outputs.vote_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.test_projects.outputs.vote_tx_hash }})" >> $GITHUB_STEP_SUMMARY
           echo "- **Resolve Transaction:** [\`${{ steps.resolve_voting.outputs.resolve_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.resolve_voting.outputs.resolve_tx_hash }})" >> $GITHUB_STEP_SUMMARY
-          echo "- **Prize Distribution:** ✅ Verified (3 tokens distributed to top 3 winners)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prize Distribution:** ✅ Verified (3 tokens distributed: 1 to each top 3 project)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
 
