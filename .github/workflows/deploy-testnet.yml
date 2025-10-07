@@ -218,7 +218,7 @@ jobs:
 
           # Get winner
           WINNER_ID=$(cast call ${{ steps.deploy.outputs.contract_address }} \
-            "winnerId()(uint256)" \
+            "winnerProjectId()(uint256)" \
             --rpc-url $HOLESKY_RPC_URL)
 
           echo "Winner project ID: $WINNER_ID"
