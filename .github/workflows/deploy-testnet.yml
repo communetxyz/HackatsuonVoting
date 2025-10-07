@@ -73,6 +73,8 @@ jobs:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: |
           echo "Verifying HackathonVoting contract on Etherscan..."
+          echo "Waiting 30 seconds for transaction to propagate..."
+          sleep 30
 
           forge verify-contract \
             --chain-id 17000 \
@@ -80,7 +82,7 @@ jobs:
             --watch \
             ${{ steps.deploy.outputs.contract_address }} \
             src/HackathonVoting.sol:HackathonVoting \
-            --etherscan-api-key $ETHERSCAN_API_KEY || echo "Verification failed or contract already verified"
+            --etherscan-api-key $ETHERSCAN_API_KEY
 
       - name: Register test projects and vote
         id: test_projects
