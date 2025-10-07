@@ -2,7 +2,7 @@
   "network": "holesky",
   "chainId": 17000,
   "prizeToken": "0x3f1c547b21f65e10480de3ad8e19faac46c95034",
-  "prizeAmount": "3",
+  "prizeAmount": "12",
   "projects": [
     {
       "title": "Example AI Project",

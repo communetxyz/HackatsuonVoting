@@ -291,8 +291,8 @@ jobs:
 
           echo "Contract balance after resolving: $CONTRACT_BALANCE_AFTER"
 
-          # Calculate expected prize (3 / 3 = 1 token per winner, all 3 projects received votes)
-          EXPECTED_PRIZE=3
+          # Calculate expected prize (12 / 3 = 4 tokens per winner, all 3 projects received votes)
+          EXPECTED_PRIZE=12
           ACTUAL_PRIZE=$((BALANCE_AFTER - BALANCE_BEFORE))
 
           echo "Expected prize distribution: $EXPECTED_PRIZE"
@@ -329,7 +329,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Vote Transaction:** [\`${{ steps.test_projects.outputs.vote_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.test_projects.outputs.vote_tx_hash }})" >> $GITHUB_STEP_SUMMARY
           echo "- **Resolve Transaction:** [\`${{ steps.resolve_voting.outputs.resolve_tx_hash }}\`](https://holesky.etherscan.io/tx/${{ steps.resolve_voting.outputs.resolve_tx_hash }})" >> $GITHUB_STEP_SUMMARY
-          echo "- **Prize Distribution:** ✅ Verified (3 tokens distributed: 1 to each top 3 project, project 4 received 0)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prize Distribution:** ✅ Verified (12 tokens distributed: 4 to each top 3 project, project 4 received 0)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployment Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
 
