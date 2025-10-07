@@ -178,16 +178,19 @@ jobs:
           sleep 10
 
           # Vote for project 3 from second voter
+          set +e  # Temporarily disable exit on error to capture output
           VOTE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "vote(uint256)" \
             3 \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $VOTER2_KEY \
-            --json 2>&1) || VOTE_EXIT_CODE=$?
-          VOTE_EXIT_CODE=${VOTE_EXIT_CODE:-0}
+            --json 2>&1)
+          VOTE_EXIT_CODE=$?
+          set -e  # Re-enable exit on error
 
           if [ $VOTE_EXIT_CODE -ne 0 ]; then
-            echo "❌ Vote transaction failed"
+            echo "❌ Vote transaction failed with exit code: $VOTE_EXIT_CODE"
+            echo "Output: $VOTE_TX"
             exit 1
           fi
 
@@ -203,15 +206,30 @@ jobs:
           sleep 5
 
           # Verify the vote was actually recorded
-          PROJECT_3_VOTES=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+          PROJECT_3_DATA=$(cast call ${{ steps.deploy.outputs.contract_address }} \
             "projects(uint256)(uint256,string,string,string,string,string,string,string,uint256,address)" \
             3 \
-            --rpc-url $HOLESKY_RPC_URL | sed -n '9p')
+            --rpc-url $HOLESKY_RPC_URL)
+
+          PROJECT_3_VOTES=$(echo "$PROJECT_3_DATA" | sed -n '9p')
+
+          echo "Project 3 vote count: $PROJECT_3_VOTES"
+          echo "Full project 3 data:"
+          echo "$PROJECT_3_DATA"
 
           if [ "$PROJECT_3_VOTES" == "0" ]; then
             echo "❌ Project 3 has 0 votes after voting!"
             exit 1
           fi
+
+          # Also check all projects
+          for proj in 1 2 3 4; do
+            VOTES=$(cast call ${{ steps.deploy.outputs.contract_address }} \
+              "projects(uint256)(uint256,string,string,string,string,string,string,string,uint256,address)" \
+              $proj \
+              --rpc-url $HOLESKY_RPC_URL | sed -n '9p')
+            echo "Project $proj votes: $VOTES"
+          done
 
       - name: Resolve voting and verify prize distribution
         id: resolve_voting
@@ -226,6 +244,15 @@ jobs:
             $TEAM_ADDRESS \
             --rpc-url $HOLESKY_RPC_URL)
 
+          echo "Team balance before resolving: $BALANCE_BEFORE"
+
+          CONTRACT_BALANCE=$(cast call $PRIZE_TOKEN_ADDRESS \
+            "balanceOf(address)(uint256)" \
+            ${{ steps.deploy.outputs.contract_address }} \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Contract balance before resolving: $CONTRACT_BALANCE"
+
           RESOLVE_TX=$(cast send ${{ steps.deploy.outputs.contract_address }} \
             "resolveVoting()" \
             --rpc-url $HOLESKY_RPC_URL \
@@ -234,6 +261,7 @@ jobs:
 
           RESOLVE_TX_HASH=$(echo $RESOLVE_TX | jq -r '.transactionHash')
           echo "resolve_tx_hash=$RESOLVE_TX_HASH" >> $GITHUB_OUTPUT
+          echo "Resolve transaction: $RESOLVE_TX_HASH"
 
           sleep 5
 
@@ -242,9 +270,21 @@ jobs:
             $TEAM_ADDRESS \
             --rpc-url $HOLESKY_RPC_URL)
 
+          echo "Team balance after resolving: $BALANCE_AFTER"
+
+          CONTRACT_BALANCE_AFTER=$(cast call $PRIZE_TOKEN_ADDRESS \
+            "balanceOf(address)(uint256)" \
+            ${{ steps.deploy.outputs.contract_address }} \
+            --rpc-url $HOLESKY_RPC_URL)
+
+          echo "Contract balance after resolving: $CONTRACT_BALANCE_AFTER"
+
           # Calculate expected prize (3 / 3 = 1 token per winner, all 3 projects received votes)
           EXPECTED_PRIZE=3
           ACTUAL_PRIZE=$((BALANCE_AFTER - BALANCE_BEFORE))
+
+          echo "Expected prize distribution: $EXPECTED_PRIZE"
+          echo "Actual prize distributed: $ACTUAL_PRIZE"
 
           if [ "$ACTUAL_PRIZE" -eq "$EXPECTED_PRIZE" ]; then
             echo "✅ Prize distribution verified successfully!"
