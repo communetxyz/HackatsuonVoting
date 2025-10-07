@@ -43,13 +43,27 @@ jobs:
           forge clean
           forge build
 
+      - name: Load deployment configuration
+        id: config
+        run: |
+          # Read configuration from holesky-deploy.json
+          PRIZE_TOKEN=$(jq -r '.prizeToken' holesky-deploy.json)
+          PRIZE_AMOUNT=$(jq -r '.prizeAmount' holesky-deploy.json)
+
+          echo "prize_token=$PRIZE_TOKEN" >> $GITHUB_OUTPUT
+          echo "prize_amount=$PRIZE_AMOUNT" >> $GITHUB_OUTPUT
+
+          echo "Loaded configuration from holesky-deploy.json:"
+          echo "  Prize Token: $PRIZE_TOKEN"
+          echo "  Prize Amount: $PRIZE_AMOUNT"
+
       - name: Deploy HackathonVoting
         id: deploy
         env:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
           HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
-          PRIZE_TOKEN_ADDRESS: "0x3f1c547b21f65e10480de3ad8e19faac46c95034"
-          PRIZE_AMOUNT: "3"
+          PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
+          PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
           echo "Deploying HackathonVoting to Holesky testnet..."
           echo "Prize Token: $PRIZE_TOKEN_ADDRESS"
@@ -85,7 +99,7 @@ jobs:
             --evm-version paris \
             --skip-is-verified-check \
             --watch \
-            --constructor-args $(cast abi-encode "constructor(address,uint256)" "0x3f1c547b21f65e10480de3ad8e19faac46c95034" "3") \
+            --constructor-args $(cast abi-encode "constructor(address,uint256)" "${{ steps.config.outputs.prize_token }}" "${{ steps.config.outputs.prize_amount }}") \
             ${{ steps.deploy.outputs.contract_address }} \
             src/HackathonVoting.sol:HackathonVoting \
             --etherscan-api-key $ETHERSCAN_API_KEY
@@ -94,18 +108,19 @@ jobs:
         env:
           HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
-          PRIZE_TOKEN_ADDRESS: "0x3f1c547b21f65e10480de3ad8e19faac46c95034"
+          PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
+          PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
           echo "Waiting for previous transactions to settle..."
           sleep 10
 
-          echo "Transferring prize tokens to contract..."
+          echo "Transferring $PRIZE_AMOUNT prize tokens to contract..."
 
-          # Transfer 3 tokens to the contract for prize distribution
+          # Transfer prize tokens to the contract for prize distribution
           cast send $PRIZE_TOKEN_ADDRESS \
             "transfer(address,uint256)" \
             ${{ steps.deploy.outputs.contract_address }} \
-            3 \
+            $PRIZE_AMOUNT \
             --rpc-url $HOLESKY_RPC_URL \
             --private-key $PRIVATE_KEY \
             --json > /dev/null
@@ -263,7 +278,7 @@ jobs:
         env:
           HOLESKY_RPC_URL: ${{ secrets.HOLESKY_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
-          PRIZE_TOKEN_ADDRESS: "0x3f1c547b21f65e10480de3ad8e19faac46c95034"
+          PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
           TEAM_ADDRESS: "0x86213f1cf0a501857B70Df35c1cb3C2EcF112844"
         run: |
           echo "Getting team balance before resolving..."

@@ -34,13 +34,27 @@ jobs:
           forge clean
           forge build
 
+      - name: Load deployment configuration
+        id: config
+        run: |
+          # Read configuration from gnosis-deploy.json
+          PRIZE_TOKEN=$(jq -r '.prizeToken' gnosis-deploy.json)
+          PRIZE_AMOUNT=$(jq -r '.prizeAmount' gnosis-deploy.json)
+
+          echo "prize_token=$PRIZE_TOKEN" >> $GITHUB_OUTPUT
+          echo "prize_amount=$PRIZE_AMOUNT" >> $GITHUB_OUTPUT
+
+          echo "Loaded configuration from gnosis-deploy.json:"
+          echo "  Prize Token: $PRIZE_TOKEN"
+          echo "  Prize Amount: $PRIZE_AMOUNT"
+
       - name: Deploy HackathonVoting
         id: deploy
         env:
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
-          PRIZE_TOKEN_ADDRESS: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-          PRIZE_AMOUNT: "3"
+          PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
+          PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
           echo "Deploying HackathonVoting to Gnosis Chain..."
           echo "Prize Token: $PRIZE_TOKEN_ADDRESS"
@@ -65,13 +79,13 @@ jobs:
           echo "Waiting 60 seconds for blockchain indexing..."
           sleep 60
 
-      - name: Register projects from gnosis-projects.json
+      - name: Register projects from gnosis-deploy.json
         env:
           PRIVATE_KEY: ${{ secrets.GNOSIS_PRIVATE_KEY }}
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
           VOTING_CONTRACT_ADDRESS: ${{ steps.deploy.outputs.contract_address }}
         run: |
-          echo "Registering projects from gnosis-projects.json..."
+          echo "Registering projects from gnosis-deploy.json..."
 
           forge script script/SetupProjects.s.sol:SetupProjectsScript \
             --rpc-url $GNOSIS_RPC_URL \
@@ -97,7 +111,7 @@ jobs:
             --num-of-optimizations 200 \
             --evm-version paris \
             --skip-is-verified-check \
-            --constructor-args $(cast abi-encode "constructor(address,uint256)" "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d" "3") \
+            --constructor-args $(cast abi-encode "constructor(address,uint256)" "${{ steps.config.outputs.prize_token }}" "${{ steps.config.outputs.prize_amount }}") \
             --verifier blockscout \
             --verifier-url https://gnosis.blockscout.com/api \
             --watch

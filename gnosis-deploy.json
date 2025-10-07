@@ -1,4 +1,8 @@
 {
+  "network": "gnosis",
+  "chainId": 100,
+  "prizeToken": "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
+  "prizeAmount": "3",
   "projects": [
     {
       "title": "AI-Powered Code Assistant",
