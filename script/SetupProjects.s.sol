@@ -9,29 +9,18 @@ contract SetupProjectsScript is Script {
         // Use gnosis-deploy.json for Gnosis Chain (chain ID 100), otherwise use holesky-deploy.json
         string memory projectFile = block.chainid == 100 ? "/gnosis-deploy.json" : "/holesky-deploy.json";
         string memory json = vm.readFile(string.concat(vm.projectRoot(), projectFile));
-        bytes memory projectsRaw = vm.parseJson(json, ".projects");
-        Project[] memory projectsList = abi.decode(projectsRaw, (Project[]));
 
-        uint256 numProjects = projectsList.length;
-        string[] memory titles = new string[](numProjects);
-        string[] memory descriptions = new string[](numProjects);
-        string[] memory teamNames = new string[](numProjects);
-        string[] memory categories = new string[](numProjects);
-        string[] memory imageUrls = new string[](numProjects);
-        string[] memory demoUrls = new string[](numProjects);
-        string[] memory githubUrls = new string[](numProjects);
-        address[] memory teamAddresses = new address[](numProjects);
+        // Parse individual string arrays from JSON
+        string[] memory titles = abi.decode(vm.parseJson(json, ".projects[*].title"), (string[]));
+        string[] memory descriptions = abi.decode(vm.parseJson(json, ".projects[*].description"), (string[]));
+        string[] memory teamNames = abi.decode(vm.parseJson(json, ".projects[*].teamName"), (string[]));
+        string[] memory categories = abi.decode(vm.parseJson(json, ".projects[*].category"), (string[]));
+        string[] memory imageUrls = abi.decode(vm.parseJson(json, ".projects[*].imageUrl"), (string[]));
+        string[] memory demoUrls = abi.decode(vm.parseJson(json, ".projects[*].demoUrl"), (string[]));
+        string[] memory githubUrls = abi.decode(vm.parseJson(json, ".projects[*].githubUrl"), (string[]));
+        address[] memory teamAddresses = abi.decode(vm.parseJson(json, ".projects[*].teamAddress"), (address[]));
 
-        for (uint256 i = 0; i < numProjects; i++) {
-            titles[i] = projectsList[i].title;
-            descriptions[i] = projectsList[i].description;
-            teamNames[i] = projectsList[i].teamName;
-            categories[i] = projectsList[i].category;
-            imageUrls[i] = projectsList[i].imageUrl;
-            demoUrls[i] = projectsList[i].demoUrl;
-            githubUrls[i] = projectsList[i].githubUrl;
-            teamAddresses[i] = projectsList[i].teamAddress;
-        }
+        uint256 numProjects = titles.length;
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         HackathonVoting(vm.envAddress("VOTING_CONTRACT_ADDRESS")).registerProjects(
