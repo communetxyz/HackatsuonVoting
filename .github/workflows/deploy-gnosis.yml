@@ -52,6 +52,10 @@ jobs:
           PRIZE_TOKEN_ADDRESS: ${{ steps.config.outputs.prize_token }}
           PRIZE_AMOUNT: ${{ steps.config.outputs.prize_amount }}
         run: |
+          echo "Deploying with:"
+          echo "Prize Token: $PRIZE_TOKEN_ADDRESS"
+          echo "Prize Amount: $PRIZE_AMOUNT"
+
           DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol:DeployScript \
             --rpc-url $GNOSIS_RPC_URL \
             --broadcast \
@@ -63,8 +67,36 @@ jobs:
           # Extract contract address from deployment output (from Logs section, not traces)
           CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "^  HackathonVoting deployed to:" | awk '{print $NF}')
 
+          if [ -z "$CONTRACT_ADDRESS" ]; then
+            echo "❌ Failed to extract contract address from deployment output"
+            echo "Trying alternative extraction method..."
+            CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "HackathonVoting deployed to:" | tail -1 | awk '{print $NF}')
+          fi
+
+          if [ -z "$CONTRACT_ADDRESS" ]; then
+            echo "❌ Contract deployment failed - no address found"
+            exit 1
+          fi
+
           echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
-          echo "Deployed to: $CONTRACT_ADDRESS"
+          echo "✅ Deployed to: $CONTRACT_ADDRESS"
+
+      - name: Verify deployment on-chain
+        env:
+          GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+        run: |
+          echo "Checking if contract exists at ${{ steps.deploy.outputs.contract_address }}..."
+
+          # Check if contract has code deployed
+          CODE=$(cast code ${{ steps.deploy.outputs.contract_address }} --rpc-url $GNOSIS_RPC_URL)
+
+          if [ "$CODE" == "0x" ]; then
+            echo "❌ No contract code found at address ${{ steps.deploy.outputs.contract_address }}"
+            echo "The deployment transaction may have failed or not been mined yet"
+            exit 1
+          fi
+
+          echo "✅ Contract confirmed deployed on-chain (bytecode length: ${#CODE} chars)"
 
       - name: Wait for blockchain indexing
         run: sleep 60
