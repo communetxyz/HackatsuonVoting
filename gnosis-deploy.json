@@ -1,38 +1,88 @@
 {
   "network": "gnosis",
   "chainId": 100,
-  "prizeToken": "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d",
-  "prizeAmount": "3",
+  "prizeToken": "0xa555d5344f6fb6c65da19e403cb4c1ec4a1a5ee3",
+  "prizeAmount": "1000000000000000000",
   "projects": [
     {
-      "title": "AI-Powered Code Assistant",
-      "description": "An intelligent code completion tool using GPT-4 to help developers write better code faster. Features include context-aware suggestions, automated documentation generation, and bug detection.",
-      "teamName": "CodeWizards",
-      "category": "AI",
-      "imageUrl": "https://placeholder.com/ai-assistant.png",
-      "demoUrl": "https://demo.codeassistant.dev",
-      "githubUrl": "https://github.com/codewizards/ai-assistant",
-      "teamAddress": "0x1111111111111111111111111111111111111111"
+      "title": "ReelDeal",
+      "description": "AI + Blockchain Uber for Seafood",
+      "teamName": "ReelDeal",
+      "category": "AI, Blockchain",
+      "imageUrl": "https://drive.google.com/file/d/1-4hrqf7swYp5i9LGDBl13MNj0DOlnJmP/view?usp=sharing",
+      "demoUrl": "https://docs.google.com/presentation/d/1cRv7honTousTDjZow_zt-fL2rE9RkBG2T3QEVuFjrIE/edit?usp=sharing",
+      "githubUrl": "https://github.com/superposition/reeldeel",
+      "teamAddress": "0x1E433470797335D18E6fF1dF56B0FF0bF4165A2c"
     },
     {
-      "title": "DeFi Lending Protocol",
-      "description": "A decentralized lending platform built on Gnosis Chain with low fees and high capital efficiency. Supports multiple collateral types and flash loans.",
-      "teamName": "DeFi Innovators",
+      "title": "KesenMemento",
+      "description": "Interactive digital exploration of Kesennuma, capturing the essence of Kesennuma in a 3D digital map archive of user-contributed stories and location-powered NFT stamp rallies.",
+      "teamName": "KesenMemento",
       "category": "Web3",
-      "imageUrl": "https://placeholder.com/defi-protocol.png",
-      "demoUrl": "https://demo.defilending.xyz",
-      "githubUrl": "https://github.com/defi-innovators/lending-protocol",
-      "teamAddress": "0x2222222222222222222222222222222222222222"
+      "imageUrl": "https://drive.google.com/file/d/1LpPkH4afPZDvkHvZRlD9Nqy1ncT46xPy/view?usp=drivesdk",
+      "demoUrl": "https://kesenmemento.vercel.app/",
+      "githubUrl": "https://github.com/JayMatsushiba/kesennuma-hackatsuon-2025",
+      "teamAddress": "0x09928ceBB4c977C5e5Db237a2A2cE5CD10497CB8"
     },
     {
-      "title": "Smart Home IoT Hub",
-      "description": "Blockchain-powered IoT management system with end-to-end encryption and decentralized device authentication. Control your smart home devices securely.",
-      "teamName": "IoT Builders",
+      "title": "KesNet Mesh Network",
+      "description": "Decentralized communication network for Kesennuma smart city",
+      "teamName": "KesNet",
       "category": "IoT",
-      "imageUrl": "https://placeholder.com/iot-hub.png",
-      "demoUrl": "https://demo.smarthomehub.io",
-      "githubUrl": "https://github.com/iot-builders/smart-home-hub",
-      "teamAddress": "0x3333333333333333333333333333333333333333"
+      "imageUrl": "https://i.postimg.cc/C1mFtxdB/Clean-Shot-2025-10-12-at-17-22-12-2x.png",
+      "demoUrl": "https://libred.org/box/kesnet/index.html?lol",
+      "githubUrl": "https://github.com/nounder/kesnet",
+      "teamAddress": "0x6F73ea756BD57D3adCAfB73A4f5Fcd750EC1c387"
+    },
+    {
+      "title": "Share House",
+      "description": "Manage shared responsibilities, rotate chores fairly, and build a harmonious home together.",
+      "teamName": "Share House",
+      "category": "Web3",
+      "imageUrl": "https://drive.google.com/file/d/1sWQ3EoNDaVsW4nnpx_dp0DAiFvWfeor5/view?usp=sharing",
+      "demoUrl": "https://www.share-house.fun/",
+      "githubUrl": "https://github.com/communetxyz/commune-os-sc",
+      "teamAddress": "0x86213f1cf0a501857B70Df35c1cb3C2EcF112844"
+    },
+    {
+      "title": "KokoJob",
+      "description": "Decentralized platform connecting individuals and local communities through learning, participation, and transparent rewards. A blockchain-based system for community contribution and education",
+      "teamName": "KOKOJOB",
+      "category": "Web3",
+      "imageUrl": "https://drive.google.com/file/d/1d-8EBaG2jUEeWJe-Py4oM-TMnYc9i1ba/view?usp=sharing",
+      "demoUrl": "https://kokojob-frontend.vercel.app/",
+      "githubUrl": "https://github.com/Jun0908/kokojob-frontend",
+      "teamAddress": "0x07015272611BA0654AB0C7E72f971d54d4Ad2f22"
+    },
+    {
+      "title": "zk-IoT",
+      "description": "A zero-knowledge proof infrastructure enabling industries to verify compliance and operational integrity without exposing sensitive data. zk-IoT transforms IoT data into verifiable proofs, automating trust, payments, and ESG reporting.",
+      "teamName": "zk-IoT",
+      "category": "Web3",
+      "imageUrl": "https://drive.google.com/file/d/1d3fQWeujGCh4NnbpY01wYjCJ9sQHT9HZ/view?usp=sharing",
+      "demoUrl": "https://zk-iot.xyz",
+      "githubUrl": "https://github.com/zk-iot/zkiot-frontend-app",
+      "teamAddress": "0x9B1027E114BA0643AC4D67E82eA871c5dD9F21E3"
+    },
+    {
+      "title": "GourmetMori",
+      "description": "Application to make a collection memories for dishes eaten at restaurants",
+      "teamName": "GourmetMori",
+      "category": "Web3",
+      "imageUrl": "https://github.com/YmSaki/gourmet-ingredient-collection/blob/3acecf007abb64c78f9e0577850b67e38334eb62/Documents/icon.png",
+      "demoUrl": "https://github.com/YmSaki/gourmet-ingredient-collection",
+      "githubUrl": "https://github.com/YmSaki/gourmet-ingredient-collection",
+      "teamAddress": "0x60B8f1Ba2374e774af79dB60C3A09B253690B6a8"
+    },
+    {
+      "title": "Kesennuma Digital Subscription",
+      "description": "Digital Citizenship for Kesennuma, Japan",
+      "teamName": "KesSub",
+      "category": "Digital Revitalization",
+      "imageUrl": "https://drive.google.com/file/d/1zeKxenWPMn8_YNh2eMekWXrKPT_nKZDK/view?usp=sharing",
+      "demoUrl": "https://kes-sub.lovable.app/",
+      "githubUrl": "https://github.com/BlockchainLD/kes-sub",
+      "teamAddress": "0x8f9d0547bf78931cd8bb342859a3f787979033bf"
     }
   ]
 }
