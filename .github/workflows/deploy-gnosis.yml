@@ -82,11 +82,18 @@ jobs:
             -vvvv
 
       - name: Verify contract on Blockscout
+        continue-on-error: true
         env:
           GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
         run: |
+          echo "Verifying contract on Blockscout..."
+          echo "Contract address: ${{ steps.deploy.outputs.contract_address }}"
+
           # Get the exact compiler version metadata from the compiled artifact
           COMPILER_VERSION=$(cat out/HackathonVoting.sol/HackathonVoting.json | jq -r '.metadata.compiler.version')
+
+          # Wait for deployment to be indexed
+          sleep 30
 
           forge verify-contract \
             ${{ steps.deploy.outputs.contract_address }} \
@@ -95,11 +102,10 @@ jobs:
             --compiler-version "v${COMPILER_VERSION}" \
             --num-of-optimizations 200 \
             --evm-version paris \
-            --skip-is-verified-check \
             --constructor-args $(cast abi-encode "constructor(address,uint256)" "${{ steps.config.outputs.prize_token }}" "${{ steps.config.outputs.prize_amount }}") \
             --verifier blockscout \
             --verifier-url https://gnosis.blockscout.com/api \
-            --watch
+            --watch || echo "⚠️ Verification failed, but continuing deployment..."
 
 
       - name: Create deployment summary
